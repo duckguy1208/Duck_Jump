@@ -1,8 +1,13 @@
 import pygame
 import random
+from pathlib import Path
 from duck import Duck
 from object import Platform
 from utils import clamp_platform_distance
+
+# Base directory for this script (ensure asset paths are resolved relative to the
+# location of this file, not the current working directory)
+BASE_DIR = Path(__file__).resolve().parent
 
 pygame.init()
 
@@ -16,12 +21,12 @@ clock = pygame.time.Clock()
 
 def generate_platform(prev_platform):
     # Max vertical gap should be less than the duck's max jump height (~213 pixels)
-    max_dy = 200 
-    min_dy = 120
+    max_dy = 210 
+    min_dy = 100
     dy = random.randint(min_dy, max_dy)
     y_pos = prev_platform.rect.y - dy
     
-    width = random.randint(50, 250)
+    width = random.randint(50, 200)
     
     # Based on dy=180, duck can travel ~290 pixels horizontally during the jump.
     # We'll use a slightly more conservative max_dx to ensure it's comfortably reachable.
@@ -32,7 +37,7 @@ def generate_platform(prev_platform):
     # The new platform should be placed such that it's reachable from the previous one.
     # The closest point of the new platform must be within max_dx of the previous platform.
     min_x = max(0, prev_platform.rect.x - max_dx)
-    max_x = min(SCREEN_WIDTH - width, prev_platform.rect.right + max_dx - width)
+    max_x = min(SCREEN_WIDTH - width, prev_platform.rect.right + max_dx - width) 
     
     if min_x <= max_x:
         x_pos = random.randint(int(min_x), int(max_x))
@@ -44,7 +49,12 @@ def generate_platform(prev_platform):
 
 def main():
     # Load stitched background image
-    stitched_bg = pygame.image.load("assets/images/stitched_background.png").convert()
+    stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
+    try:
+        stitched_bg = pygame.image.load(str(stitched_bg_path)).convert()
+    except Exception as e:
+        print(f"Error loading background image: {stitched_bg_path} -> {e}")
+        raise
     stitched_bg_height = stitched_bg.get_height()
     num_backgrounds = stitched_bg_height // SCREEN_HEIGHT
 
@@ -52,8 +62,18 @@ def main():
     small_font = pygame.font.Font(None, 36)
 
     # Load sound effects
-    quack_sound = pygame.mixer.Sound("assets/sounds/quack_sound.mp3") 
-    wing_flap = pygame.mixer.Sound("assets/sounds/wing_flap.mp3")
+    quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.mp3"
+    wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
+    try:
+        quack_sound = pygame.mixer.Sound(str(quack_sound_path))
+    except Exception as e:
+        print(f"Error loading quack sound: {quack_sound_path} -> {e}")
+        raise
+    try:
+        wing_flap = pygame.mixer.Sound(str(wing_flap_path))
+    except Exception as e:
+        print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
+        raise
 
     def reset_game():
         d = Duck(screen)
