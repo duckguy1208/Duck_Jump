@@ -91,6 +91,9 @@ def main():
         w = False
         return d, cy, p, hpy, s, mh, go, w
 
+    #def paused(): ran out of time in class
+
+
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
 
     while True:
@@ -113,6 +116,22 @@ def main():
                     quack_sound.set_volume(0.5)
                     quack_sound.play()
 
+
+        '''
+        while paused == true:
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            screen.blit(overlay, (0, 0))
+
+            pause_text = font.render("Paused", (255, 255, 0))
+            continue_text = font.render("Press Q To Continue", (255, 255, 0))
+            restart_text = font.render("Press R To Restart", (255, 255, 0))
+            screen.blit(pause_text, (SCREEN_WIDTH // 2 - pause_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
+            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 150))
+        ran out of time in class    
+        '''
+
+
         dt = clock.tick(60)
 
         if not game_over and not won:
@@ -131,7 +150,12 @@ def main():
             
             if dx != 0:
                 duck.move(dx, 0, dt)
-            
+
+            '''if keys[pygame.Q]:
+                paused == true
+            ran out of time in class
+            '''
+
             # Note: jump and quack are handled on KEYDOWN events above to avoid repeating while held
                 
 
