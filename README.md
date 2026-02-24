@@ -38,7 +38,7 @@ This project uses `pygbag` to build a web-compatible version of the game.
 To build the web version locally:
 ```bash
 python -m pip install pygbag
-python -m pygbag --build --disable-sound-format-error main.py
+python -m pygbag --build --cdn https://pygame-web.github.io/cdn/0.9.3/ --disable-sound-format-error main.py
 ```
 The build artifacts will be located in the `build/web` directory.
 
