@@ -32,5 +32,15 @@ Note: This project uses `pygame-ce` (Community Edition), which is a drop-in repl
 python main.py
 ```
 
+### 5. Web Deployment (PWA)
+This project uses `pygbag` to build a web-compatible version of the game.
+
+To build the web version:
+```bash
+pip install pygbag
+python -m pygbag --build --disable-sound-format-error main.py
+```
+The build artifacts will be located in the `build/web` directory, which can be deployed to static hosting services like GitHub Pages, Vercel, or Netlify.
+
 ## Troubleshooting
 If you encounter issues with `pygame-ce` installation on Linux, you may need to install additional system dependencies (e.g., `libsdl2-dev`, `libsdl2-image-dev`, `libsdl2-mixer-dev`, `libsdl2-ttf-dev`).
