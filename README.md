@@ -23,7 +23,7 @@ source .venv/bin/activate
 
 ### 3. Install Dependencies
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 Note: This project uses `pygame-ce` (Community Edition), which is a drop-in replacement for `pygame` with more frequent updates and better performance.
 
@@ -37,7 +37,7 @@ This project uses `pygbag` to build a web-compatible version of the game.
 
 To build the web version locally:
 ```bash
-pip install pygbag
+python -m pip install pygbag
 python -m pygbag --build --disable-sound-format-error main.py
 ```
 The build artifacts will be located in the `build/web` directory.
