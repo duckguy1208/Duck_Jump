@@ -1,5 +1,6 @@
 import pygame
 import random
+import asyncio
 from pathlib import Path
 from duck import Duck
 from object import Platform
@@ -47,7 +48,7 @@ def generate_platform(prev_platform):
         
     return Platform(x_pos, y_pos, width, 40)
 
-def main():
+async def main():
     # Load stitched background image
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
@@ -204,9 +205,10 @@ def main():
             screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
 
         pygame.display.flip()  # Refresh on-screen display
+        await asyncio.sleep(0)
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         pass

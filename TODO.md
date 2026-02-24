@@ -25,4 +25,4 @@
 
 ## Deployment
 
-- [ ] Use Pygbag to prepare the game to be deployed as a PWA on heroku or vercel... some free hosting.
+- [x] Use Pygbag to prepare the game to be deployed as a PWA on heroku or vercel... some free hosting.
