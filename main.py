@@ -10,6 +10,12 @@ from utils import clamp_platform_distance
 BASE_DIR = Path(__file__).resolve().parent
 
 pygame.init()
+mixer_available = False
+try:
+    pygame.mixer.init()
+    mixer_available = True
+except pygame.error:
+    print("Warning: Audio device not available. Sound disabled.")
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
@@ -62,19 +68,21 @@ def main():
     small_font = pygame.font.Font(None, 36)
 
     # Load sound effects
-    quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.mp3"
-    wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
-    try:
-        quack_sound = pygame.mixer.Sound(str(quack_sound_path))
-    except Exception as e:
-        print(f"Error loading quack sound: {quack_sound_path} -> {e}")
-        raise
-    try:
-        wing_flap = pygame.mixer.Sound(str(wing_flap_path))
-    except Exception as e:
-        print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
-        raise
+    quack_sound = None
+    wing_flap = None
+    if mixer_available:
+        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.mp3"
+        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
+        try:
+            quack_sound = pygame.mixer.Sound(str(quack_sound_path))
+        except Exception as e:
+            print(f"Error loading quack sound: {quack_sound_path} -> {e}")
+        try:
+            wing_flap = pygame.mixer.Sound(str(wing_flap_path))
+        except Exception as e:
+            print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
 
+        
     def reset_game():
         d = Duck(screen)
         d.pos.y = SCREEN_HEIGHT / 2
@@ -113,12 +121,14 @@ def main():
                     duck.jump()
                 if event.key == pygame.K_SPACE:
                     duck.quack()
-                    quack_sound.set_volume(0.5)
-                    quack_sound.play()
+                    if quack_sound:
+                        quack_sound.set_volume(0.5)
+                        quack_sound.play()
+                    
 
+        paused = False
 
-        '''
-        while paused == true:
+        while paused == True:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
@@ -126,11 +136,13 @@ def main():
             pause_text = font.render("Paused", (255, 255, 0))
             continue_text = font.render("Press Q To Continue", (255, 255, 0))
             restart_text = font.render("Press R To Restart", (255, 255, 0))
+
             screen.blit(pause_text, (SCREEN_WIDTH // 2 - pause_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 150))
-        ran out of time in class    
-        '''
+            screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
 
+            if keys[pygame.Q]:
+                paused == False
 
         dt = clock.tick(60)
 
@@ -151,17 +163,18 @@ def main():
             if dx != 0:
                 duck.move(dx, 0, dt)
 
-            '''if keys[pygame.Q]:
-                paused == true
-            ran out of time in class
-            '''
+            if keys[pygame.K_q]:
+                paused == True
+            
+           
 
             # Note: jump and quack are handled on KEYDOWN events above to avoid repeating while held
                 
 
             # Play wing flap only when duck starts moving upward (transition from non-up to up)
             if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
-                wing_flap.play()
+                if wing_flap:
+                    wing_flap.play()
 
             duck.applyGravity(dt, platforms)
 
