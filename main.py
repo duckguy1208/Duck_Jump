@@ -1,5 +1,6 @@
 import pygame
 import random
+import asyncio
 from pathlib import Path
 from duck import Duck
 from object import Platform
@@ -53,7 +54,7 @@ def generate_platform(prev_platform):
         
     return Platform(x_pos, y_pos, width, 40)
 
-def main():
+async def main():
     # Load stitched background image
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
@@ -71,8 +72,8 @@ def main():
     quack_sound = None
     wing_flap = None
     if mixer_available:
-        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.mp3"
-        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
+        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.ogg"
+        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.ogg"
         try:
             quack_sound = pygame.mixer.Sound(str(quack_sound_path))
         except Exception as e:
@@ -103,6 +104,7 @@ def main():
 
 
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+    paused = False
 
     while True:
         # remember previous vertical velocity to detect upward transitions
@@ -115,7 +117,7 @@ def main():
             if (game_over or won) and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
-            # Handle single-press actions (jump, quack) so they don't repeat while held
+            # Handle single-press actions (jump, quack, pause)
             if not (game_over or won) and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     duck.jump()
@@ -124,25 +126,35 @@ def main():
                     if quack_sound:
                         quack_sound.set_volume(0.5)
                         quack_sound.play()
-                    
+                if event.key == pygame.K_q:
+                    paused = True
 
-        paused = False
+        while paused:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    raise SystemExit
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        paused = False
+                    if event.key == pygame.K_r:
+                        duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+                        paused = False
 
-        while paused == True:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
 
-            pause_text = font.render("Paused", (255, 255, 0))
-            continue_text = font.render("Press Q To Continue", (255, 255, 0))
-            restart_text = font.render("Press R To Restart", (255, 255, 0))
+            pause_text = font.render("Paused", True, (255, 255, 0))
+            continue_text = font.render("Press Q To Continue", True, (255, 255, 0))
+            restart_text = font.render("Press R To Restart", True, (255, 255, 0))
 
             screen.blit(pause_text, (SCREEN_WIDTH // 2 - pause_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 150))
             screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
 
-            if keys[pygame.Q]:
-                paused == False
+            pygame.display.flip()
+            await asyncio.sleep(0)
 
         dt = clock.tick(60)
 
@@ -163,12 +175,16 @@ def main():
             if dx != 0:
                 duck.move(dx, 0, dt)
 
+<<<<<<< HEAD
             if keys[pygame.K_q]:
                 paused = True
             
            
 
             # Note: jump and quack are handled on KEYDOWN events above to avoid repeating while held
+=======
+            # Note: jump, quack, and pause are handled on KEYDOWN events above
+>>>>>>> b50b1b057a3943229213c0dd165951e5e32fd6b7
                 
 
             # Play wing flap only when duck starts moving upward (transition from non-up to up)
@@ -241,9 +257,10 @@ def main():
             screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
 
         pygame.display.flip()  # Refresh on-screen display
+        await asyncio.sleep(0)
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         pass
