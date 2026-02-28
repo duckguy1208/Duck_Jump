@@ -19,6 +19,7 @@ pg.init()
 mixer_available = False
 try:
     pg.mixer.init()
+    pg.mixer.set_num_channels(32)
     mixer_available = True
 except pg.error:
     print("Warning: Audio device not available. Sound disabled.")
@@ -272,11 +273,11 @@ async def main():
             if move_h != 0:
                 duck.move(move_h, 0, dt)
 
+            duck.applyGravity(dt, platforms)
+
             if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
                 if wing_flap:
                     wing_flap.play()
-
-            duck.applyGravity(dt, platforms)
 
             if duck.pos.y < max_height:
                 score += int((max_height - duck.pos.y) / 10)
