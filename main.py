@@ -43,6 +43,34 @@ def generate_platform(prev_platform):
         
     return Platform(x_pos, y_pos, width, 40)
 
+
+
+def reset_game():
+    """Return initial game state and put the duck over the first platform.
+
+    This helper lives at module scope so it can be imported directly by tests.
+    """
+    d = Duck(screen)
+    # three starter platforms (bottom first)
+    platforms = [
+        Platform(100, 600, 400, 40),
+        Platform(600, 450, 400, 40),
+        Platform(200, 300, 300, 40)
+    ]
+    # position duck above the first platform so it always starts there
+    first = platforms[0]
+    d.pos = pygame.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
+    d.on_ground = True
+
+    hpy = first.rect.y
+    s = 0
+    mh = SCREEN_HEIGHT / 2
+    go = False
+    w = False
+    cy = 0  # camera start at bottom of stitched image
+    return d, cy, platforms, hpy, s, mh, go, w
+
+
 async def main():
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
@@ -59,8 +87,8 @@ async def main():
     quack_sound = None
     wing_flap = None
     if mixer_available:
-        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.ogg"
-        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.ogg"
+        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.mp3"
+        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
         try:
             quack_sound = pygame.mixer.Sound(str(quack_sound_path))
         except Exception as e:
@@ -70,19 +98,6 @@ async def main():
         except Exception as e:
             print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
 
-    def reset_game():
-        d = Duck(screen)
-        p = [
-            Platform(100, 600, 400, 40),
-            Platform(600, 450, 400, 40),
-            Platform(200, 300, 300, 40)
-        ]
-        hpy = 300
-        s = 0
-        mh = SCREEN_HEIGHT / 2
-        go = False
-        w = False
-        return d, cy, p, hpy, s, mh, go, w
 
     #def paused(): ran out of time in class
 
@@ -90,26 +105,32 @@ async def main():
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
     paused = False
     start_menu = True
-<<<<<<< feature/tap-to-jump-controls
     
     # Current horizontal velocity multiplier for the current jump
     horizontal_multiplier = 0
 
     while True:
+        # always tick the clock each iteration, even while the start menu is showing
+        # so that we don't accumulate a huge delta when the player finally begins.
+        dt = clock.tick(60)
+        # it is possible for a very large dt (e.g. after resuming from a pause in
+        # a debugger); clamp to something reasonable to avoid tunnelling through
+        # platforms.
+        if dt > 100:
+            dt = 100
+
         if start_menu:
             # Process events to clear the start menu
-=======
-
-    while True:
-        if start_menu:
->>>>>>> main
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
-<<<<<<< feature/tap-to-jump-controls
                 if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
+                    # reset timing variables as we exit menu to avoid leftover
+                    # motion from a prior session
                     start_menu = False
+                    duck.vertical_vel = 0
+                    duck.on_ground = True
 
             bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT)
             screen.blit(stitched_bg, (0, bg_y_offset))
@@ -120,34 +141,10 @@ async def main():
             instruction_text = small_font.render("Tap to Jump in a Direction", True, (255, 255, 255))
             screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(instruction_text, (SCREEN_WIDTH // 2 - instruction_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
-=======
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
-                        start_menu = False
-
-            # Rendering start menu
-            bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT)
-            screen.blit(stitched_bg, (0, bg_y_offset))
-
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 150))
-            screen.blit(overlay, (0, 0))
-
-            title_text = font.render("DUCK JUMP", True, (255, 255, 0))
-            instruction_text = small_font.render("Press SPACE to Start", True, (255, 255, 255))
-
-            screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(instruction_text, (SCREEN_WIDTH // 2 - instruction_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
-
->>>>>>> main
             pygame.display.flip()
             await asyncio.sleep(0)
             continue
 
-<<<<<<< feature/tap-to-jump-controls
-=======
-        # remember previous vertical velocity to detect upward transitions
->>>>>>> main
         prev_vertical_vel = duck.vertical_vel
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -157,17 +154,11 @@ async def main():
             if (game_over or won):
                 if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
                     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
-<<<<<<< feature/tap-to-jump-controls
                     horizontal_multiplier = 0
                     start_menu = True
                 continue
 
             if event.type == pygame.KEYDOWN:
-=======
-                    start_menu = True
-            # Handle single-press actions (jump, quack, pause)
-            if not (game_over or won) and event.type == pygame.KEYDOWN:
->>>>>>> main
                 if event.key == pygame.K_UP:
                     if duck.on_ground:
                         duck.jump()
@@ -192,10 +183,10 @@ async def main():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
-<<<<<<< feature/tap-to-jump-controls
+
                 if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
                     paused = False
-=======
+
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_p:
                         paused = False
@@ -219,8 +210,7 @@ async def main():
             pygame.display.flip()
             await asyncio.sleep(0)
 
-        dt = clock.tick(60)
-
+        # dt already computed at the top of the loop; no need to tick again here.
         if not game_over and not won:
             duck.quack_timer -= dt
             if duck.quack_timer < 0:
@@ -230,16 +220,9 @@ async def main():
             if duck.on_ground:
                 horizontal_multiplier = 0
 
-<<<<<<< feature/tap-to-jump-controls
             if horizontal_multiplier != 0:
                 duck.move(horizontal_multiplier, 0, dt)
 
-=======
-            # Note: jump, quack, and pause are handled on KEYDOWN events above to avoid repeating while held
-                
-
-            # Play wing flap only when duck starts moving upward (transition from non-up to up)
->>>>>>> main
             if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
                 if wing_flap:
                     wing_flap.play()
@@ -253,6 +236,9 @@ async def main():
             if duck.pos.y < camera_y + SCREEN_HEIGHT / 2:
                 camera_y = duck.pos.y - SCREEN_HEIGHT / 2
 
+            # calculate which background slice we're in every frame so the win
+            # condition works reliably; this used to be indented under the camera
+            # update and could leave ``level_index`` undefined, crashing on input.
             level_index = int(max(0, -camera_y) // SCREEN_HEIGHT)
             if level_index >= num_backgrounds:
                 won = True

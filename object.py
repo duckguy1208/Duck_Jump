@@ -89,8 +89,8 @@ class Object:
         self.adjust_pos(platforms)
     
 
-    #def random_position(self):
-        #return pygame.Vector2(self.random_x(), self.random_y())
+    def random_position(self):
+        return pygame.Vector2(self.random_x(), self.random_y())
 
     def random_left(self):
         return pygame.Vector2(self.random_x('left'), self.random_y())
