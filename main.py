@@ -36,31 +36,31 @@ else:
     SCREEN_WIDTH = 1280
     SCREEN_HEIGHT = 720
 
-print('Screen Dimensions: ' + str(SCREEN_WIDTH) + ', ' + str(SCREEN_HEIGHT))
+print("Screen Dimensions: " + str(SCREEN_WIDTH) + ", " + str(SCREEN_HEIGHT))
 
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 clock = pg.time.Clock()
 
+
 def generate_platform(prev_platform):
-    max_dy = 210 
+    max_dy = 210
     min_dy = 100
     dy = random.randint(min_dy, max_dy)
     y_pos = prev_platform.rect.y - dy
     width = random.randint(50, 200)
-    max_dx_init = 250 + int(prev_platform.rect.y / 100)  
+    max_dx_init = 250 + int(prev_platform.rect.y / 100)
     max_dx = clamp_platform_distance(max_dx_init)
 
     min_x = max(0, prev_platform.rect.x - max_dx)
-    max_x = min(SCREEN_WIDTH - width, prev_platform.rect.right + max_dx - width) 
-    
+    max_x = min(SCREEN_WIDTH - width, prev_platform.rect.right + max_dx - width)
+
     if min_x <= max_x:
         x_pos = random.randint(int(min_x), int(max_x))
     else:
         x_pos = random.randint(0, SCREEN_WIDTH - width)
-        
-    return Platform(x_pos, y_pos, width, 40)
 
+    return Platform(x_pos, y_pos, width, 40)
 
 
 def reset_game():
@@ -71,9 +71,15 @@ def reset_game():
     d = Duck(screen)
     # three starter platforms (bottom first)
     platforms = [
-        Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40) if SCREEN_WIDTH > 400 else Platform(10, 600, SCREEN_WIDTH - 20, 40),
-        Platform(SCREEN_WIDTH - 400, 450, 400, 40) if SCREEN_WIDTH > 400 else Platform(SCREEN_WIDTH - 150, 450, 140, 40),
-        Platform(100, 300, 300, 40) if SCREEN_WIDTH > 400 else Platform(50, 300, 150, 40)
+        Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
+        if SCREEN_WIDTH > 400
+        else Platform(10, 600, SCREEN_WIDTH - 20, 40),
+        Platform(SCREEN_WIDTH - 400, 450, 400, 40)
+        if SCREEN_WIDTH > 400
+        else Platform(SCREEN_WIDTH - 150, 450, 140, 40),
+        Platform(100, 300, 300, 40)
+        if SCREEN_WIDTH > 400
+        else Platform(50, 300, 150, 40),
     ]
     # position duck above the first platform so it always starts there
     first = platforms[0]
@@ -120,14 +126,14 @@ async def main():
         except Exception as e:
             print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
 
+    # def paused(): ran out of time in class
 
-    #def paused(): ran out of time in class
-
-
-    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = (
+        reset_game()
+    )
     paused = False
     start_menu = True
-    
+
     # Current horizontal velocity multiplier for the current jump
     horizontal_multiplier = 0
 
@@ -160,9 +166,23 @@ async def main():
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
             title_text = font.render("DUCK JUMP", True, (255, 255, 0))
-            instruction_text = small_font.render("Tap to Jump in a Direction", True, (255, 255, 255))
-            screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(instruction_text, (SCREEN_WIDTH // 2 - instruction_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+            instruction_text = small_font.render(
+                "Tap to Jump in a Direction", True, (255, 255, 255)
+            )
+            screen.blit(
+                title_text,
+                (
+                    SCREEN_WIDTH // 2 - title_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 - 50,
+                ),
+            )
+            screen.blit(
+                instruction_text,
+                (
+                    SCREEN_WIDTH // 2 - instruction_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 + 50,
+                ),
+            )
             pg.display.flip()
             await asyncio.sleep(0)
             continue
@@ -172,10 +192,19 @@ async def main():
             if event.type == pg.QUIT:
                 pg.quit()
                 raise SystemExit
-            
-            if (game_over or won):
+
+            if game_over or won:
                 if event.type in [pg.KEYDOWN, pg.MOUSEBUTTONDOWN, pg.FINGERDOWN]:
-                    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+                    (
+                        duck,
+                        camera_y,
+                        platforms,
+                        highest_platform_y,
+                        score,
+                        max_height,
+                        game_over,
+                        won,
+                    ) = reset_game()
                     horizontal_multiplier = 0
                     start_menu = True
                 continue
@@ -201,8 +230,8 @@ async def main():
                 # Check if tap is on the duck (within 20 pixels of center)
                 # duck.pos.y is world space, we need screen space
                 duck_screen_y = duck.pos.y - camera_y
-                dist = ((tap_x - duck.pos.x)**2 + (tap_y - duck_screen_y)**2)**0.5
-                
+                dist = ((tap_x - duck.pos.x) ** 2 + (tap_y - duck_screen_y) ** 2) ** 0.5
+
                 if dist <= 20:
                     duck.quack()
                     if quack_sound:
@@ -214,7 +243,7 @@ async def main():
                     horizontal_multiplier = dist_x / (SCREEN_WIDTH / 2)
                     # Clamp multiplier to [-1.0, 1.0]
                     horizontal_multiplier = max(-1.0, min(1.0, horizontal_multiplier))
-                    
+
                     if duck.on_ground:
                         duck.jump()
 
@@ -231,7 +260,16 @@ async def main():
                     if event.key == pg.K_p:
                         paused = False
                     if event.key == pg.K_r:
-                        duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+                        (
+                            duck,
+                            camera_y,
+                            platforms,
+                            highest_platform_y,
+                            score,
+                            max_height,
+                            game_over,
+                            won,
+                        ) = reset_game()
                         paused = False
                         start_menu = True
 
@@ -242,8 +280,20 @@ async def main():
             continue_text = font.render("Press P To Continue", True, (255, 255, 0))
             restart_text = font.render("Press R To Restart", True, (255, 255, 0))
 
-            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+            screen.blit(
+                continue_text,
+                (
+                    SCREEN_WIDTH // 2 - continue_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 - 50,
+                ),
+            )
+            screen.blit(
+                restart_text,
+                (
+                    SCREEN_WIDTH // 2 - restart_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 + 50,
+                ),
+            )
 
             pg.display.flip()
             await asyncio.sleep(0)
@@ -261,7 +311,7 @@ async def main():
                 kb_h = -0.75
             elif keys[pg.K_RIGHT]:
                 kb_h = 0.75
-            
+
             # effective multiplier: keyboard overrides tap trajectory
             move_h = kb_h if kb_h != 0 else horizontal_multiplier
 
@@ -297,7 +347,9 @@ async def main():
                 platforms.append(new_platform)
                 highest_platform_y = new_platform.rect.y
 
-            platforms = [p for p in platforms if p.rect.y < camera_y + SCREEN_HEIGHT + 100]
+            platforms = [
+                p for p in platforms if p.rect.y < camera_y + SCREEN_HEIGHT + 100
+            ]
 
             if duck.pos.y > camera_y + SCREEN_HEIGHT:
                 game_over = True
@@ -317,13 +369,28 @@ async def main():
             overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
-            title_text = font.render("YOU WIN!" if won else "GAME OVER", True, (255, 255, 0))
+            title_text = font.render(
+                "YOU WIN!" if won else "GAME OVER", True, (255, 255, 0)
+            )
             restart_text = small_font.render("Tap to Restart", True, (255, 255, 255))
-            screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+            screen.blit(
+                title_text,
+                (
+                    SCREEN_WIDTH // 2 - title_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 - 50,
+                ),
+            )
+            screen.blit(
+                restart_text,
+                (
+                    SCREEN_WIDTH // 2 - restart_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 + 50,
+                ),
+            )
 
         pg.display.flip()
         await asyncio.sleep(0)
+
 
 if __name__ == "__main__":
     try:
