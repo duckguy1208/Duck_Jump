@@ -4,6 +4,9 @@
 
 - [x] [HIGH_PRIORITY] We are in C:\Users\jonat\~projects\tie-and-jon-pygame yet there is a tie-and-jon-pygame directory in C:\Users\jonat\~projects\tie-and-jon-pygame. Investigate the cause of the duplication... could it be the wording in the gemini-task.ps1 script or prompt.md? Is it safe to remove the duplicate nested directory?
 - [x] Platforms always need to be within reach of the duck's max jump height. No impossible platforms.
+- [ ] Sounds need converting from mp3 to ogg for git pages
+- [ ] Mobile tap controls dont function
+- [ ] Mobile screen is landscape rather than portai
 
 ## Features
 
@@ -19,12 +22,14 @@
     If the player gets through all the levels, they win. Implement a win screen like the game over screen.
 - [x] start menu
 - [x] pause menu
+- [X] mobile support
 - [ ] multiplayer functionality (racing)
-- [ ] mobile support
 - [ ] reason to quack (could just be for fun too)
-- [ ] more than one way to get up
+- [ ] more than one path up
 - [ ] collapsing platforms
-
+- [ ] no ending (repeat space background)
+- [ ] custom platforms (not just white)
+      
 ## Tech Debt
 
 - [ ] implement proper linting that enforces python standards. Include the linting as part of a pre commit hook
