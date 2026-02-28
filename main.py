@@ -164,7 +164,7 @@ def main():
                 duck.move(dx, 0, dt)
 
             if keys[pygame.K_q]:
-                paused == True
+                paused = True
             
            
 
