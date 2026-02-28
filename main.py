@@ -84,8 +84,8 @@ async def main():
     paused = False
     start_menu = True
     
-    # Current horizontal direction (-1, 0, 1)
-    current_dx = 0
+    # Current horizontal velocity multiplier for the current jump
+    horizontal_multiplier = 0
 
     while True:
         if start_menu:
@@ -102,7 +102,7 @@ async def main():
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
             title_text = font.render("DUCK JUMP", True, (255, 255, 0))
-            instruction_text = small_font.render("Tap or Press Any Key to Start", True, (255, 255, 255))
+            instruction_text = small_font.render("Tap to Jump in a Direction", True, (255, 255, 255))
             screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(instruction_text, (SCREEN_WIDTH // 2 - instruction_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
             pygame.display.flip()
@@ -118,17 +118,23 @@ async def main():
             if (game_over or won):
                 if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
                     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
-                    current_dx = 0
+                    horizontal_multiplier = 0
                     start_menu = True
                 continue
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     duck.jump()
+                    # No lateral movement for standard jump key
+                    horizontal_multiplier = 0
                 if event.key == pygame.K_LEFT:
-                    current_dx = -1
+                    if duck.on_ground:
+                        duck.jump()
+                    horizontal_multiplier = -1.0
                 if event.key == pygame.K_RIGHT:
-                    current_dx = 1
+                    if duck.on_ground:
+                        duck.jump()
+                    horizontal_multiplier = 1.0
                 if event.key == pygame.K_SPACE:
                     duck.quack()
                     if quack_sound:
@@ -142,12 +148,19 @@ async def main():
                     mpos = (event.x * SCREEN_WIDTH, event.y * SCREEN_HEIGHT)
                 
                 if mpos:
-                    # Jump in the direction of the tap
-                    if mpos[0] < duck.pos.x:
-                        current_dx = -1
-                    else:
-                        current_dx = 1
-                    duck.jump()
+                    # Calculate distance from duck center
+                    dx = mpos[0] - duck.pos.x
+                    
+                    # Scaling factor: 200 pixels distance = 1.0 multiplier
+                    # A multiplier of 1.0 at vel=400 gives ~424px horizontal distance in a jump
+                    multiplier = dx / 200.0
+                    
+                    # Clamp the multiplier to a reasonable range
+                    horizontal_multiplier = max(-2.0, min(2.0, multiplier))
+                    
+                    # Only jump if on ground
+                    if duck.on_ground:
+                        duck.jump()
 
         while paused:
             for event in pygame.event.get():
@@ -174,23 +187,12 @@ async def main():
             if duck.quack_timer < 0:
                 duck.quack_timer = 0
 
-            # Keyboard can still override current_dx if keys are held
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT]:
-                current_dx = -1
-            elif keys[pygame.K_RIGHT]:
-                current_dx = 1
+            # If duck lands, reset lateral movement
+            if duck.on_ground:
+                horizontal_multiplier = 0
 
-            if current_dx != 0:
-                duck.move(current_dx, 0, dt)
-                
-                # If we hit a wall, stop horizontal movement
-                half_sprite = duck.sprite_size / 2
-                if duck.pos.x <= duck.x_min + half_sprite or duck.pos.x >= duck.x_max - half_sprite:
-                    # Only stop if it's the direction we are trying to go
-                    if (current_dx < 0 and duck.pos.x <= duck.x_min + half_sprite) or \
-                       (current_dx > 0 and duck.pos.x >= duck.x_max - half_sprite):
-                        pass # current_dx = 0  # Optional: keep moving against wall or stop? 
+            if horizontal_multiplier != 0:
+                duck.move(horizontal_multiplier, 0, dt)
 
             if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
                 if wing_flap:
