@@ -17,8 +17,8 @@
     space1 - space4
     then progress through each colored background in any order.
     If the player gets through all the levels, they win. Implement a win screen like the game over screen.
-- [ ] start menu
-- [ ] pause menu
+- [x] start menu
+- [x] pause menu
 - [ ] multiplayer functionality (racing)
 - [ ] mobile support
 - [ ] reason to quack (could just be for fun too)
