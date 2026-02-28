@@ -173,6 +173,25 @@ def test_reset_spawns_on_starting_platform():
     assert duck.on_ground
 
 
+def test_initial_platforms_reachable():
+   
+    import main as mainmod
+
+    pg.init()
+    # reproducible starter platforms during tests
+    random.seed(0)
+    duck, camera_y, platforms, *_ = mainmod.reset_game()
+    assert len(platforms) >= 3
+
+    # reuse helper from above tests
+    assert is_reachable(platforms[0], platforms[1]), (
+        f"Second starter platform {platforms[1].rect} not reachable from {platforms[0].rect}"
+    )
+    assert is_reachable(platforms[1], platforms[2]), (
+        f"Third starter platform {platforms[2].rect} not reachable from {platforms[1].rect}"
+    )
+
+
 def test_game_over_condition():
     # Simulate game over condition logic
     SCREEN_HEIGHT = 720

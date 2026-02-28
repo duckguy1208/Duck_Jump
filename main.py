@@ -11,9 +11,6 @@ from utils import clamp_platform_distance
 BASE_DIR = Path(__file__).resolve().parent
 
 
-thing = "jon"
-thing = 10
-print(thing)
 
 pg.init()
 mixer_available = False
@@ -71,19 +68,23 @@ def reset_game():
     """
     d = Duck(screen)
     # three starter platforms (bottom first)
-    platforms = [
-        Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
-        if SCREEN_WIDTH > 400
-        else Platform(10, 600, SCREEN_WIDTH - 20, 40),
-        Platform(SCREEN_WIDTH - 400, 450, 400, 40)
-        if SCREEN_WIDTH > 400
-        else Platform(SCREEN_WIDTH - 150, 450, 140, 40),
-        Platform(100, 300, 300, 40)
-        if SCREEN_WIDTH > 400
-        else Platform(50, 300, 150, 40),
-    ]
+    # the very first platform is fixed so the duck has a predictable
+    # starting point; subsequent platforms are created via the same
+    # logic used during gameplay to guarantee they lie within the duck's
+    # jump range.  Prior implementation hard‑coded the second and third
+    # platforms which could occasionally place them out of reach on narrow
+    # screens or unusual sizes.
+    if SCREEN_WIDTH > 400:
+        first = Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
+    else:
+        first = Platform(10, 600, SCREEN_WIDTH - 20, 40)
+
+    second = generate_platform(first)
+    third = generate_platform(second)
+
+    platforms = [first, second, third]
+
     # position duck above the first platform so it always starts there
-    first = platforms[0]
     d.pos = pg.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
     d.on_ground = True
 
