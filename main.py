@@ -87,6 +87,7 @@ async def main():
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
     paused = False
     start_menu = True
+<<<<<<< feature/tap-to-jump-controls
     
     # Current horizontal velocity multiplier for the current jump
     horizontal_multiplier = 0
@@ -94,10 +95,16 @@ async def main():
     while True:
         if start_menu:
             # Process events to clear the start menu
+=======
+
+    while True:
+        if start_menu:
+>>>>>>> main
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
+<<<<<<< feature/tap-to-jump-controls
                 if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
                     start_menu = False
 
@@ -110,10 +117,34 @@ async def main():
             instruction_text = small_font.render("Tap to Jump in a Direction", True, (255, 255, 255))
             screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(instruction_text, (SCREEN_WIDTH // 2 - instruction_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+=======
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE or event.key == pygame.K_RETURN:
+                        start_menu = False
+
+            # Rendering start menu
+            bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT)
+            screen.blit(stitched_bg, (0, bg_y_offset))
+
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            screen.blit(overlay, (0, 0))
+
+            title_text = font.render("DUCK JUMP", True, (255, 255, 0))
+            instruction_text = small_font.render("Press SPACE to Start", True, (255, 255, 255))
+
+            screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
+            screen.blit(instruction_text, (SCREEN_WIDTH // 2 - instruction_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+
+>>>>>>> main
             pygame.display.flip()
             await asyncio.sleep(0)
             continue
 
+<<<<<<< feature/tap-to-jump-controls
+=======
+        # remember previous vertical velocity to detect upward transitions
+>>>>>>> main
         prev_vertical_vel = duck.vertical_vel
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -123,11 +154,17 @@ async def main():
             if (game_over or won):
                 if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
                     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+<<<<<<< feature/tap-to-jump-controls
                     horizontal_multiplier = 0
                     start_menu = True
                 continue
 
             if event.type == pygame.KEYDOWN:
+=======
+                    start_menu = True
+            # Handle single-press actions (jump, quack, pause)
+            if not (game_over or won) and event.type == pygame.KEYDOWN:
+>>>>>>> main
                 if event.key == pygame.K_UP:
                     if duck.on_ground:
                         duck.jump()
@@ -172,8 +209,18 @@ async def main():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
+<<<<<<< feature/tap-to-jump-controls
                 if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
                     paused = False
+=======
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        paused = False
+                    if event.key == pygame.K_r:
+                        duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+                        paused = False
+                        start_menu = True
+>>>>>>> main
 
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
@@ -196,9 +243,16 @@ async def main():
             if duck.on_ground:
                 horizontal_multiplier = 0
 
+<<<<<<< feature/tap-to-jump-controls
             if horizontal_multiplier != 0:
                 duck.move(horizontal_multiplier, 0, dt)
 
+=======
+            # Note: jump, quack, and pause are handled on KEYDOWN events above to avoid repeating while held
+                
+
+            # Play wing flap only when duck starts moving upward (transition from non-up to up)
+>>>>>>> main
             if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
                 if wing_flap:
                     wing_flap.play()
