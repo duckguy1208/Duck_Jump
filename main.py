@@ -10,7 +10,7 @@ from utils import clamp_platform_distance
 BASE_DIR = Path(__file__).resolve().parent
 
 pygame.init()
-mixer_available = False
+mixer_available = True
 try:
     pygame.mixer.init()
     mixer_available = True
@@ -75,14 +75,16 @@ def main():
         wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
         try:
             quack_sound = pygame.mixer.Sound(str(quack_sound_path))
+            quack_sound.set_volume(1)
         except Exception as e:
             print(f"Error loading quack sound: {quack_sound_path} -> {e}")
         try:
             wing_flap = pygame.mixer.Sound(str(wing_flap_path))
+            wing_flap.set_volume(1)
+            print(f"Wing flap sound loaded successfully from: {wing_flap_path}")
         except Exception as e:
             print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
 
-        
     def reset_game():
         d = Duck(screen)
         d.pos.y = SCREEN_HEIGHT / 2
@@ -99,10 +101,8 @@ def main():
         w = False
         return d, cy, p, hpy, s, mh, go, w
 
-    #def paused(): ran out of time in class
-
-
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+    paused = False
 
     while True:
         # remember previous vertical velocity to detect upward transitions
@@ -116,37 +116,23 @@ def main():
                 if event.key == pygame.K_r:
                     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
             # Handle single-press actions (jump, quack) so they don't repeat while held
-            if not (game_over or won) and event.type == pygame.KEYDOWN:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    paused = not paused
+                if event.key == pygame.K_r and paused:
+                    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+                    paused = False
+            if not (game_over or won) and not paused and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     duck.jump()
                 if event.key == pygame.K_SPACE:
                     duck.quack()
                     if quack_sound:
-                        quack_sound.set_volume(0.5)
                         quack_sound.play()
-                    
-
-        paused = False
-
-        while paused == True:
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 150))
-            screen.blit(overlay, (0, 0))
-
-            pause_text = font.render("Paused", (255, 255, 0))
-            continue_text = font.render("Press Q To Continue", (255, 255, 0))
-            restart_text = font.render("Press R To Restart", (255, 255, 0))
-
-            screen.blit(pause_text, (SCREEN_WIDTH // 2 - pause_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 150))
-            screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
-
-            if keys[pygame.Q]:
-                paused == False
 
         dt = clock.tick(60)
 
-        if not game_over and not won:
+        if not paused and not game_over and not won:
             # Decrement quack timer
             duck.quack_timer -= dt
             if duck.quack_timer < 0:
@@ -163,9 +149,6 @@ def main():
             if dx != 0:
                 duck.move(dx, 0, dt)
 
-            if keys[pygame.K_q]:
-                paused == True
-            
            
 
             # Note: jump and quack are handled on KEYDOWN events above to avoid repeating while held
@@ -238,6 +221,18 @@ def main():
             restart_text = small_font.render("Press R to Restart", True, (255, 255, 255))
             
             screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
+            screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+
+        if paused:
+            # Dim the screen
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            screen.blit(overlay, (0, 0))
+
+            continue_text = font.render("Press P To Continue", True, (255, 255, 0))
+            restart_text = font.render("Press R To Restart", True, (255, 255, 0))
+
+            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
 
         pygame.display.flip()  # Refresh on-screen display
