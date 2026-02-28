@@ -145,6 +145,7 @@ async def main():
             if (game_over or won) and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+                    start_menu = True
             # Handle single-press actions (jump, quack, pause)
             if not (game_over or won) and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
@@ -168,6 +169,7 @@ async def main():
                     if event.key == pygame.K_r:
                         duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
                         paused = False
+                        start_menu = True
 
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
