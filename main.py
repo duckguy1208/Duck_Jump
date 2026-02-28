@@ -199,12 +199,10 @@ async def main():
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
 
-            pause_text = font.render("Paused", True, (255, 255, 0))
-            continue_text = font.render("Press Q To Continue", True, (255, 255, 0))
+            continue_text = font.render("Press P To Continue", True, (255, 255, 0))
             restart_text = font.render("Press R To Restart", True, (255, 255, 0))
 
-            screen.blit(pause_text, (SCREEN_WIDTH // 2 - pause_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 150))
+            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
 
             pygame.display.flip()
