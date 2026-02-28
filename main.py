@@ -71,11 +71,18 @@ def reset_game():
     """
     d = Duck(screen)
     # three starter platforms (bottom first)
-    platforms = [
-        Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40) if SCREEN_WIDTH > 400 else Platform(10, 600, SCREEN_WIDTH - 20, 40),
-        Platform(SCREEN_WIDTH - 400, 450, 400, 40) if SCREEN_WIDTH > 400 else Platform(SCREEN_WIDTH - 150, 450, 140, 40),
-        Platform(100, 300, 300, 40) if SCREEN_WIDTH > 400 else Platform(50, 300, 150, 40)
-    ]
+    if SCREEN_WIDTH > 400:
+        platforms = [
+            Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40),
+            Platform(SCREEN_WIDTH // 2 - 50, 450, 300, 40),
+            Platform(SCREEN_WIDTH // 2 - 250, 300, 300, 40),
+        ]
+    else:
+        platforms = [
+            Platform(10, 600, SCREEN_WIDTH - 20, 40),
+            Platform(SCREEN_WIDTH - 150, 450, 140, 40),
+            Platform(50, 300, 150, 40),
+        ]
     # position duck above the first platform so it always starts there
     first = platforms[0]
     d.pos = pg.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
