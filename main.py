@@ -72,13 +72,17 @@ async def main():
 
     def reset_game():
         d = Duck(screen)
-        d.pos.y = SCREEN_HEIGHT / 2
         p = [
             Platform(100, 600, 400, 40),
             Platform(600, 450, 400, 40),
             Platform(200, 300, 300, 40)
         ]
-        return d, 0, p, 300, 0, SCREEN_HEIGHT / 2, False, False
+        # Start duck on the first platform
+        d.pos.x = p[0].rect.centerx
+        d.pos.y = p[0].rect.top - (d.sprite_size / 2)
+        d.on_ground = True
+        d.vertical_vel = 0
+        return d, 0, p, 300, 0, d.pos.y, False, False
 
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
     paused = False
@@ -89,6 +93,7 @@ async def main():
 
     while True:
         if start_menu:
+            # Process events to clear the start menu
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -124,17 +129,17 @@ async def main():
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    duck.jump()
-                    # No lateral movement for standard jump key
-                    horizontal_multiplier = 0
+                    if duck.on_ground:
+                        duck.jump()
+                        horizontal_multiplier = 0
                 if event.key == pygame.K_LEFT:
                     if duck.on_ground:
                         duck.jump()
-                    horizontal_multiplier = -1.0
+                    horizontal_multiplier = -0.75
                 if event.key == pygame.K_RIGHT:
                     if duck.on_ground:
                         duck.jump()
-                    horizontal_multiplier = 1.0
+                    horizontal_multiplier = 0.75
                 if event.key == pygame.K_SPACE:
                     duck.quack()
                     if quack_sound:
@@ -151,12 +156,12 @@ async def main():
                     # Calculate distance from duck center
                     dx = mpos[0] - duck.pos.x
                     
-                    # Scaling factor: 200 pixels distance = 1.0 multiplier
-                    # A multiplier of 1.0 at vel=400 gives ~424px horizontal distance in a jump
-                    multiplier = dx / 200.0
+                    # Scaling factor: 400 pixels distance = 1.0 multiplier
+                    # Reduced sensitivity for more "limited" lateral movement
+                    multiplier = dx / 400.0
                     
-                    # Clamp the multiplier to a reasonable range
-                    horizontal_multiplier = max(-2.0, min(2.0, multiplier))
+                    # Clamp the multiplier to a stricter range
+                    horizontal_multiplier = max(-1.25, min(1.25, multiplier))
                     
                     # Only jump if on ground
                     if duck.on_ground:
