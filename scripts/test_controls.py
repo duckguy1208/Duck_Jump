@@ -86,3 +86,22 @@ def test_keyboard_overrides_mobile_logic():
     h_mult = 0
     move_h = kb_h if kb_h != 0 else h_mult
     assert move_h == 0.75
+
+def test_quack_on_tap_logic():
+    # Simulate quack_on_tap logic from main.py
+    duck_x = 640
+    duck_y = 360
+    camera_y = 0
+    duck_screen_y = duck_y - camera_y
+    
+    # Tap close to duck (within 20px)
+    tap_x = 650
+    tap_y = 350
+    dist = ((tap_x - duck_x)**2 + (tap_y - duck_screen_y)**2)**0.5
+    assert dist <= 20
+    
+    # Tap far from duck
+    tap_x = 100
+    tap_y = 100
+    dist = ((tap_x - duck_x)**2 + (tap_y - duck_screen_y)**2)**0.5
+    assert dist > 20

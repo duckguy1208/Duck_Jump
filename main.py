@@ -176,15 +176,25 @@ async def main():
                     tap_x = event.x * SCREEN_WIDTH
                     tap_y = event.y * SCREEN_HEIGHT
 
-                # Granular horizontal: relative to duck position
-                # If tap is at duck's x, multiplier is 0. If at screen edge, it's ~1.0 or ~-1.0
-                dist_x = tap_x - duck.pos.x
-                horizontal_multiplier = dist_x / (SCREEN_WIDTH / 2)
-                # Clamp multiplier to [-1.0, 1.0]
-                horizontal_multiplier = max(-1.0, min(1.0, horizontal_multiplier))
+                # Check if tap is on the duck (within 20 pixels of center)
+                # duck.pos.y is world space, we need screen space
+                duck_screen_y = duck.pos.y - camera_y
+                dist = ((tap_x - duck.pos.x)**2 + (tap_y - duck_screen_y)**2)**0.5
                 
-                if duck.on_ground:
-                    duck.jump()
+                if dist <= 20:
+                    duck.quack()
+                    if quack_sound:
+                        quack_sound.play()
+                else:
+                    # Granular horizontal: relative to duck position
+                    # If tap is at duck's x, multiplier is 0. If at screen edge, it's ~1.0 or ~-1.0
+                    dist_x = tap_x - duck.pos.x
+                    horizontal_multiplier = dist_x / (SCREEN_WIDTH / 2)
+                    # Clamp multiplier to [-1.0, 1.0]
+                    horizontal_multiplier = max(-1.0, min(1.0, horizontal_multiplier))
+                    
+                    if duck.on_ground:
+                        duck.jump()
 
         while paused:
             for event in pygame.event.get():
