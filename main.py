@@ -72,8 +72,8 @@ async def main():
     quack_sound = None
     wing_flap = None
     if mixer_available:
-        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.mp3"
-        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
+        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.ogg"
+        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.ogg"
         try:
             quack_sound = pygame.mixer.Sound(str(quack_sound_path))
         except Exception as e:
