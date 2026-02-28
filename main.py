@@ -28,8 +28,13 @@ width = sizes[0][0]
 
 isMobile = width < 767
 
-SCREEN_WIDTH = 425 if isMobile else 1280
-SCREEN_HEIGHT = 725 if isMobile else 720
+# Portrait for mobile, Landscape for desktop
+if isMobile:
+    SCREEN_WIDTH = 405  # Standard 9:16 aspect ratio roughly
+    SCREEN_HEIGHT = 720
+else:
+    SCREEN_WIDTH = 1280
+    SCREEN_HEIGHT = 720
 
 print('Screen Dimensions: ' + str(SCREEN_WIDTH) + ', ' + str(SCREEN_HEIGHT))
 
@@ -66,9 +71,9 @@ def reset_game():
     d = Duck(screen)
     # three starter platforms (bottom first)
     platforms = [
-        Platform(100, 600, 400, 40),
-        Platform(600, 450, 400, 40),
-        Platform(200, 300, 300, 40)
+        Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40) if SCREEN_WIDTH > 400 else Platform(10, 600, SCREEN_WIDTH - 20, 40),
+        Platform(SCREEN_WIDTH - 400, 450, 400, 40) if SCREEN_WIDTH > 400 else Platform(SCREEN_WIDTH - 150, 450, 140, 40),
+        Platform(100, 300, 300, 40) if SCREEN_WIDTH > 400 else Platform(50, 300, 150, 40)
     ]
     # position duck above the first platform so it always starts there
     first = platforms[0]
@@ -87,7 +92,11 @@ def reset_game():
 async def main():
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
-        stitched_bg = pg.image.load(str(stitched_bg_path)).convert()
+        raw_stitched_bg = pg.image.load(str(stitched_bg_path)).convert()
+        # Scale to match SCREEN_WIDTH, keeping total height relative to scaling factor
+        scale_factor = SCREEN_WIDTH / raw_stitched_bg.get_width()
+        new_height = int(raw_stitched_bg.get_height() * scale_factor)
+        stitched_bg = pg.transform.scale(raw_stitched_bg, (SCREEN_WIDTH, new_height))
     except Exception as e:
         print(f"Error loading background image: {stitched_bg_path} -> {e}")
         raise

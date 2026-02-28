@@ -6,7 +6,7 @@
 - [x] Platforms always need to be within reach of the duck's max jump height. No impossible platforms.
 - [x] Sounds need converting from mp3 to ogg for git pages
 - [x] Mobile tap controls dont function
-- [ ] Mobile screen is landscape rather than portai
+- [x] Mobile screen is landscape rather than portai
 
 ## Features (priority sorted)
 
@@ -23,7 +23,7 @@
 - [x] start menu
 - [x] pause menu
 - [x] mobile support
-- [ ] optimize for portrait view on mobile, keep landscape on desktop (detect based on screen width, probably)
+- [x] optimize for portrait view on mobile, keep landscape on desktop (detect based on screen width, probably)
 - [ ] more than one path up
 - [ ] collapsing platforms
 - [ ] custom platforms (not just white)

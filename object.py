@@ -111,7 +111,10 @@ class Object:
     def adjust_pos(self, platforms=[]):
         half_sprite = self.sprite_size / 2
         
-        # Screen boundaries
+        # Screen boundaries - update max values from surface
+        self.x_max = self.surface.get_width()
+        self.y_max = self.surface.get_height()
+        
         if self.pos.x < self.x_min + half_sprite:
             self.pos.x = self.x_min + half_sprite
         if self.pos.x > self.x_max - half_sprite:
