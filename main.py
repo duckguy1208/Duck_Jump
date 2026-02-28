@@ -162,15 +162,6 @@ async def main():
                 if event.key == pygame.K_UP:
                     if duck.on_ground:
                         duck.jump()
-                        horizontal_multiplier = 0
-                if event.key == pygame.K_LEFT:
-                    if duck.on_ground:
-                        duck.jump()
-                    horizontal_multiplier = -0.75
-                if event.key == pygame.K_RIGHT:
-                    if duck.on_ground:
-                        duck.jump()
-                    horizontal_multiplier = 0.75
                 if event.key == pygame.K_SPACE:
                     duck.quack()
                     if quack_sound:
@@ -231,12 +222,23 @@ async def main():
             if duck.quack_timer < 0:
                 duck.quack_timer = 0
 
-            # If duck lands, reset lateral movement
+            # Keyboard horizontal movement
+            keys = pygame.key.get_pressed()
+            kb_h = 0
+            if keys[pygame.K_LEFT]:
+                kb_h = -0.75
+            elif keys[pygame.K_RIGHT]:
+                kb_h = 0.75
+            
+            # effective multiplier: keyboard overrides tap trajectory
+            move_h = kb_h if kb_h != 0 else horizontal_multiplier
+
+            # If duck lands, reset lateral movement (trajectory)
             if duck.on_ground:
                 horizontal_multiplier = 0
 
-            if horizontal_multiplier != 0:
-                duck.move(horizontal_multiplier, 0, dt)
+            if move_h != 0:
+                duck.move(move_h, 0, dt)
 
             if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
                 if wing_flap:
