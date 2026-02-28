@@ -99,10 +99,17 @@ async def main():
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
         raw_stitched_bg = pg.image.load(str(stitched_bg_path)).convert()
-        # Scale to match SCREEN_WIDTH, keeping total height relative to scaling factor
-        scale_factor = SCREEN_WIDTH / raw_stitched_bg.get_width()
-        new_height = int(raw_stitched_bg.get_height() * scale_factor)
-        stitched_bg = pg.transform.scale(raw_stitched_bg, (SCREEN_WIDTH, new_height))
+        # original slice height from backgrounds.
+        original_slice_height = 720
+        # Use "Cover" logic: scale so it fills the screen without squishing.
+        # We want each slice to be exactly SCREEN_HEIGHT tall.
+        scale = max(
+            SCREEN_WIDTH / raw_stitched_bg.get_width(),
+            SCREEN_HEIGHT / original_slice_height,
+        )
+        new_w = int(raw_stitched_bg.get_width() * scale)
+        new_h = int(raw_stitched_bg.get_height() * scale)
+        stitched_bg = pg.transform.scale(raw_stitched_bg, (new_w, new_h))
     except Exception as e:
         print(f"Error loading background image: {stitched_bg_path} -> {e}")
         raise
@@ -161,7 +168,7 @@ async def main():
                     duck.on_ground = True
 
             bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT)
-            screen.blit(stitched_bg, (0, bg_y_offset))
+            screen.blit(stitched_bg, ((SCREEN_WIDTH - stitched_bg.get_width()) // 2, bg_y_offset))
             overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
@@ -356,7 +363,9 @@ async def main():
 
         bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT + camera_y)
         bg_y_offset = min(0, max(-(stitched_bg_height - SCREEN_HEIGHT), bg_y_offset))
-        screen.blit(stitched_bg, (0, bg_y_offset))
+        screen.blit(
+            stitched_bg, ((SCREEN_WIDTH - stitched_bg.get_width()) // 2, bg_y_offset)
+        )
 
         for p in platforms:
             p.draw(screen, camera_y)
