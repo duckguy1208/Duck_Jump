@@ -1,1 +1,3 @@
-pygame-ce pygbag ruff
+pygame-ce
+pygbag
+ruff
