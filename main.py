@@ -100,8 +100,6 @@ async def main():
         w = False
         return d, cy, p, hpy, s, mh, go, w
 
-    #def paused(): ran out of time in class
-
 
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
     paused = False
@@ -155,32 +153,31 @@ async def main():
                     if quack_sound:
                         quack_sound.set_volume(0.5)
                         quack_sound.play()
-                if event.key == pygame.K_q:
+                if event.key == pygame.K_p:
                     paused = True
 
-        while paused:
+        while paused == True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
+                    if event.key == pygame.K_p:
                         paused = False
                     if event.key == pygame.K_r:
                         duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
                         paused = False
-                        start_menu = True
 
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
 
-            pause_text = font.render("Paused", True, (255, 255, 0))
-            continue_text = font.render("Press Q To Continue", True, (255, 255, 0))
+            
+            continue_text = font.render("Press P To Continue", True, (255, 255, 0))
             restart_text = font.render("Press R To Restart", True, (255, 255, 0))
 
-            screen.blit(pause_text, (SCREEN_WIDTH // 2 - pause_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 150))
+           
+            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
 
             pygame.display.flip()
