@@ -2,7 +2,7 @@ import os
 # Use dummy video driver for headless testing
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
-import pygame
+import pygame as pg
 import pytest
 import random
 from object import Platform, Object
@@ -82,8 +82,8 @@ def test_platform_creation():
     assert p.rect.height == 10
 
 def test_object_movement():
-    pygame.init()
-    surface = pygame.Surface((2000, 600)) # Larger surface to avoid boundary cap
+    pg.init()
+    surface = pg.Surface((2000, 600)) # Larger surface to avoid boundary cap
     obj = Object(surface)
     initial_x = obj.pos.x
     obj.move(1, 0, 1000) # Move right for 1 second at vel=400
@@ -94,8 +94,8 @@ def test_object_movement():
         assert obj.pos.x == 2000 - 60
 
 def test_camera_rendering():
-    pygame.init()
-    surface = pygame.Surface((800, 600))
+    pg.init()
+    surface = pg.Surface((800, 600))
     p = Platform(100, 200, 50, 10)
     # This just tests it doesn't crash, since we can't easily check the surface content here without more complex mocking
     p.draw(surface, camera_y=50)
@@ -152,7 +152,7 @@ def test_reset_spawns_on_starting_platform():
     """After resetting the game the duck should be positioned over the first
     platform and marked as on the ground."""
     import main as mainmod
-    pygame.init()
+    pg.init()
 
     duck, camera_y, platforms, hpy, score, mh, go, w = mainmod.reset_game()
     assert platforms, "no platforms were created"
