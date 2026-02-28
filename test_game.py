@@ -147,6 +147,23 @@ def test_score_increment():
     assert score == 6 # Score should not change
     assert max_height == 300
 
+
+def test_reset_spawns_on_starting_platform():
+    """After resetting the game the duck should be positioned over the first
+    platform and marked as on the ground."""
+    import main as mainmod
+    pygame.init()
+
+    duck, camera_y, platforms, hpy, score, mh, go, w = mainmod.reset_game()
+    assert platforms, "no platforms were created"
+    first = platforms[0]
+    # duck x should match platform center
+    assert duck.pos.x == first.rect.centerx
+    # duck y should sit directly above or on top of the platform
+    assert duck.pos.y <= first.rect.top
+    assert duck.pos.y >= first.rect.top - duck.sprite_size / 2
+    assert duck.on_ground
+
 def test_game_over_condition():
     # Simulate game over condition logic
     SCREEN_HEIGHT = 720

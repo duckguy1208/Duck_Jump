@@ -10,8 +10,10 @@ def test_background_loading():
     SCREEN_WIDTH = 1280
     SCREEN_HEIGHT = 720
     
+    # `background_1.png` is the first (bottom) tile; earlier tests
+    # referred to a non‑existent "game_background.png" name.
     background_files = [
-        "game_background.png",
+        "background_1.png",
         "background_sky1.png",
         "background_sky2.png",
         "background_sky3.png",

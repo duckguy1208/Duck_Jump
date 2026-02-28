@@ -46,6 +46,34 @@ def generate_platform(prev_platform):
         
     return Platform(x_pos, y_pos, width, 40)
 
+
+
+def reset_game():
+    """Return initial game state and put the duck over the first platform.
+
+    This helper lives at module scope so it can be imported directly by tests.
+    """
+    d = Duck(screen)
+    # three starter platforms (bottom first)
+    platforms = [
+        Platform(100, 600, 400, 40),
+        Platform(600, 450, 400, 40),
+        Platform(200, 300, 300, 40)
+    ]
+    # position duck above the first platform so it always starts there
+    first = platforms[0]
+    d.pos = pygame.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
+    d.on_ground = True
+
+    hpy = first.rect.y
+    s = 0
+    mh = SCREEN_HEIGHT / 2
+    go = False
+    w = False
+    cy = 0  # camera start at bottom of stitched image
+    return d, cy, platforms, hpy, s, mh, go, w
+
+
 async def main():
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
@@ -62,8 +90,8 @@ async def main():
     quack_sound = None
     wing_flap = None
     if mixer_available:
-        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.ogg"
-        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.ogg"
+        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.mp3"
+        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
         try:
             quack_sound = pygame.mixer.Sound(str(quack_sound_path))
         except Exception as e:
@@ -73,19 +101,16 @@ async def main():
         except Exception as e:
             print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
 
-    def reset_game():
-        d = Duck(screen)
-        d.pos.y = SCREEN_HEIGHT / 2
-        p = [
-            Platform(100, 600, 400, 40),
-            Platform(600, 450, 400, 40),
-            Platform(200, 300, 300, 40)
-        ]
-        return d, 0, p, 300, 0, SCREEN_HEIGHT / 2, False, False
+
+    #def paused(): ran out of time in class
+
 
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
     paused = False
     start_menu = True
+    
+    # Current horizontal velocity multiplier for the current jump
+    horizontal_multiplier = 0
 
     # Mobile control regions
     jump_btn = pygame.Rect(SCREEN_WIDTH // 2 - 60, SCREEN_HEIGHT - 120, 120, 100)
@@ -93,16 +118,27 @@ async def main():
     right_btn = pygame.Rect(SCREEN_WIDTH - 170, SCREEN_HEIGHT - 120, 120, 100)
 
     while True:
+        # always tick the clock each iteration, even while the start menu is showing
+        # so that we don't accumulate a huge delta when the player finally begins.
+        dt = clock.tick(60)
+        # it is possible for a very large dt (e.g. after resuming from a pause in
+        # a debugger); clamp to something reasonable to avoid tunnelling through
+        # platforms.
+        if dt > 100:
+            dt = 100
+
         if start_menu:
+            # Process events to clear the start menu
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
-                if event.type == pygame.KEYDOWN:
-                    if event.key in [pygame.K_SPACE, pygame.K_RETURN]:
-                        start_menu = False
-                if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
+                if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
+                    # reset timing variables as we exit menu to avoid leftover
+                    # motion from a prior session
                     start_menu = False
+                    duck.vertical_vel = 0
+                    duck.on_ground = True
 
             bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT)
             screen.blit(stitched_bg, (0, bg_y_offset))
@@ -110,7 +146,7 @@ async def main():
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
             title_text = font.render("DUCK JUMP", True, (255, 255, 0))
-            instruction_text = small_font.render("Press SPACE or Tap to Start", True, (255, 255, 255))
+            instruction_text = small_font.render("Tap to Jump in a Direction", True, (255, 255, 255))
             screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
             screen.blit(instruction_text, (SCREEN_WIDTH // 2 - instruction_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
             pygame.display.flip()
@@ -124,23 +160,30 @@ async def main():
                 raise SystemExit
             
             if (game_over or won):
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
                     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
-                    start_menu = True
-                if event.type in [pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
-                    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+                    horizontal_multiplier = 0
                     start_menu = True
                 continue
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    duck.jump()
+                    if duck.on_ground:
+                        duck.jump()
+                        horizontal_multiplier = 0
+                if event.key == pygame.K_LEFT:
+                    if duck.on_ground:
+                        duck.jump()
+                    horizontal_multiplier = -0.75
+                if event.key == pygame.K_RIGHT:
+                    if duck.on_ground:
+                        duck.jump()
+                    horizontal_multiplier = 0.75
                 if event.key == pygame.K_SPACE:
                     duck.quack()
                     if quack_sound:
-                        quack_sound.set_volume(0.5)
                         quack_sound.play()
-                if event.key == pygame.K_q:
+                if event.key == pygame.K_p:
                     paused = True
 
             if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN:
@@ -162,51 +205,43 @@ async def main():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
+
+                if event.type in [pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
+                    paused = False
+
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
+                    if event.key == pygame.K_p:
                         paused = False
                     if event.key == pygame.K_r:
                         duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
                         paused = False
                         start_menu = True
-                if event.type in [pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
-                    paused = False
 
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
-            pause_text = font.render("Paused", True, (255, 255, 0))
-            continue_text = small_font.render("Tap to Continue", True, (255, 255, 0))
-            screen.blit(pause_text, (SCREEN_WIDTH // 2 - pause_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+
+            continue_text = font.render("Press P To Continue", True, (255, 255, 0))
+            restart_text = font.render("Press R To Restart", True, (255, 255, 0))
+
+            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
+            screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+
             pygame.display.flip()
             await asyncio.sleep(0)
 
-        dt = clock.tick(60)
-
+        # dt already computed at the top of the loop; no need to tick again here.
         if not game_over and not won:
             duck.quack_timer -= dt
             if duck.quack_timer < 0:
                 duck.quack_timer = 0
 
-            keys = pygame.key.get_pressed()
-            dx = 0
-            if keys[pygame.K_LEFT]:
-                dx = -1
-            elif keys[pygame.K_RIGHT]:
-                dx = 1
-            
-            # Touch/Mouse continuous movement
-            m_pressed = pygame.mouse.get_pressed()
-            if m_pressed[0]:
-                mpos = pygame.mouse.get_pos()
-                if left_btn.collidepoint(mpos):
-                    dx = -1
-                elif right_btn.collidepoint(mpos):
-                    dx = 1
+            # If duck lands, reset lateral movement
+            if duck.on_ground:
+                horizontal_multiplier = 0
 
-            if dx != 0:
-                duck.move(dx, 0, dt)
+            if horizontal_multiplier != 0:
+                duck.move(horizontal_multiplier, 0, dt)
 
             if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
                 if wing_flap:
@@ -221,6 +256,9 @@ async def main():
             if duck.pos.y < camera_y + SCREEN_HEIGHT / 2:
                 camera_y = duck.pos.y - SCREEN_HEIGHT / 2
 
+            # calculate which background slice we're in every frame so the win
+            # condition works reliably; this used to be indented under the camera
+            # update and could leave ``level_index`` undefined, crashing on input.
             level_index = int(max(0, -camera_y) // SCREEN_HEIGHT)
             if level_index >= num_backgrounds:
                 won = True
