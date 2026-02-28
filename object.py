@@ -1,4 +1,4 @@
-import pygame
+import pygame as pg
 import random
 import os
 
@@ -27,19 +27,19 @@ class Object:
         # Load player image once (duck.png) from assets/sprites
         img_path = os.path.join('assets', 'sprites', 'duck.png')
         try:
-            self.player_img = pygame.image.load(img_path).convert_alpha()
+            self.player_img = pg.image.load(img_path).convert_alpha()
             # Scale the image down to the configured sprite size
-            self.player_img = pygame.transform.smoothscale(self.player_img, (self.sprite_size, self.sprite_size))
+            self.player_img = pg.transform.smoothscale(self.player_img, (self.sprite_size, self.sprite_size))
         except Exception:
             # Fallback: create a simple surface if image missing
-            self.player_img = pygame.Surface((self.sprite_size, self.sprite_size), pygame.SRCALPHA)
-            pygame.draw.circle(self.player_img, pygame.Color(self.color), (self.sprite_size//2, self.sprite_size//2), self.sprite_size//2)
+            self.player_img = pg.Surface((self.sprite_size, self.sprite_size), pg.SRCALPHA)
+            pg.draw.circle(self.player_img, pg.Color(self.color), (self.sprite_size//2, self.sprite_size//2), self.sprite_size//2)
         
         # Load quack image (duck_quack.png) from assets/sprites
         quack_img_path = os.path.join('assets', 'sprites', 'duck_quack.png')
         try:
-            self.quack_img = pygame.image.load(quack_img_path).convert_alpha()
-            self.quack_img = pygame.transform.smoothscale(self.quack_img, (self.sprite_size, self.sprite_size))
+            self.quack_img = pg.image.load(quack_img_path).convert_alpha()
+            self.quack_img = pg.transform.smoothscale(self.quack_img, (self.sprite_size, self.sprite_size))
         except Exception:
             # If quack image doesn't exist, use the regular image
             self.quack_img = self.player_img
@@ -50,9 +50,9 @@ class Object:
         
         # Flip image if facing right (assuming sprite naturally faces left)
         if self.facing_right:
-            img = pygame.transform.flip(img, True, False)
+            img = pg.transform.flip(img, True, False)
 
-        offset = pygame.Vector2(img.get_width() / 2, img.get_height() / 2)
+        offset = pg.Vector2(img.get_width() / 2, img.get_height() / 2)
         dest = self.pos - offset
         self.surface.blit(img, (dest.x, dest.y - camera_y))
         
@@ -60,7 +60,7 @@ class Object:
         if self.quack_text and self.quack_timer > 0:
             text_size = getattr(self, 'quack_text_size', 36)
             text_color = getattr(self, 'quack_color', (0, 0, 0))
-            font = pygame.font.Font(None, text_size)
+            font = pg.font.Font(None, text_size)
             text_surf = font.render(self.quack_text, True, text_color)
             text_pos = (self.pos.x - text_surf.get_width() / 2, self.pos.y - self.sprite_size / 2 - 10 - camera_y)
             self.surface.blit(text_surf, text_pos)
@@ -90,13 +90,13 @@ class Object:
     
 
     def random_position(self):
-        return pygame.Vector2(self.random_x(), self.random_y())
+        return pg.Vector2(self.random_x(), self.random_y())
 
     def random_left(self):
-        return pygame.Vector2(self.random_x('left'), self.random_y())
+        return pg.Vector2(self.random_x('left'), self.random_y())
 
     def random_right(self):
-        return pygame.Vector2(self.random_x('right'), self.random_y())
+        return pg.Vector2(self.random_x('right'), self.random_y())
 
     def random_x(self):
         return random.uniform(0 + (self.sprite_size / 2), self.surface.get_width() - (self.sprite_size / 2))
@@ -106,7 +106,7 @@ class Object:
 
     def get_rect(self):
         half_sprite = self.sprite_size / 2
-        return pygame.Rect(self.pos.x - half_sprite, self.pos.y - half_sprite, self.sprite_size, self.sprite_size)
+        return pg.Rect(self.pos.x - half_sprite, self.pos.y - half_sprite, self.sprite_size, self.sprite_size)
 
     def adjust_pos(self, platforms=[]):
         half_sprite = self.sprite_size / 2
@@ -134,15 +134,15 @@ class Object:
     
     
 def objectFactory(x, y):
-    return Object(pygame.Vector2(x, y))
+    return Object(pg.Vector2(x, y))
 
 
 class Platform:
     def __init__(self, x, y, width, height):
-        self.rect = pygame.Rect(x, y, width, height)
+        self.rect = pg.Rect(x, y, width, height)
         self.color = (255, 255, 255) # White color
 
     def draw(self, surface, camera_y=0):
         draw_rect = self.rect.copy()
         draw_rect.y -= camera_y
-        pygame.draw.rect(surface, self.color, draw_rect)
+        pg.draw.rect(surface, self.color, draw_rect)

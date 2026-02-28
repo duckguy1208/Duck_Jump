@@ -1,8 +1,8 @@
-import pygame
+import pygame as pg
 import os
 
 def stitch_backgrounds():
-    pygame.init()
+    pg.init()
     SCREEN_WIDTH = 1280
     SCREEN_HEIGHT = 720
     
@@ -26,7 +26,7 @@ def stitch_backgrounds():
     ]
     
     total_height = len(background_files) * SCREEN_HEIGHT
-    stitched_bg = pygame.Surface((SCREEN_WIDTH, total_height))
+    stitched_bg = pg.Surface((SCREEN_WIDTH, total_height))
     
     for i, f in enumerate(background_files):
         path = os.path.join("assets", "images", f)
@@ -34,8 +34,8 @@ def stitch_backgrounds():
             print(f"Warning: {path} not found.")
             continue
         
-        img = pygame.image.load(path)
-        img = pygame.transform.scale(img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        img = pg.image.load(path)
+        img = pg.transform.scale(img, (SCREEN_WIDTH, SCREEN_HEIGHT))
         
         # We want index 0 at the bottom, index 1 above it, etc.
         # Index 0 y = total_height - SCREEN_HEIGHT
@@ -46,7 +46,7 @@ def stitch_backgrounds():
         print(f"Blitted {f} at y={y_pos}")
     
     output_path = os.path.join("assets", "images", "stitched_background.png")
-    pygame.image.save(stitched_bg, output_path)
+    pg.image.save(stitched_bg, output_path)
     print(f"Saved stitched background to {output_path}")
 
 if __name__ == "__main__":

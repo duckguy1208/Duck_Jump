@@ -1,12 +1,12 @@
 import os
-import pygame
+import pygame as pg
 import pytest
 
 # Use dummy video driver for headless testing
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
 def test_background_loading():
-    pygame.init()
+    pg.init()
     SCREEN_WIDTH = 1280
     SCREEN_HEIGHT = 720
     
@@ -34,12 +34,12 @@ def test_background_loading():
     for f in background_files:
         path = os.path.join("assets", "images", f)
         assert os.path.exists(path), f"Background file {path} missing"
-        img = pygame.image.load(path)
+        img = pg.image.load(path)
         assert img.get_width() > 0
         assert img.get_height() > 0
 
 def test_duck_assets():
-    pygame.init()
+    pg.init()
     duck_path = os.path.join("assets", "sprites", "duck.png")
     quack_path = os.path.join("assets", "sprites", "duck_quack.png")
     
@@ -47,10 +47,10 @@ def test_duck_assets():
     assert os.path.exists(quack_path), "duck_quack.png missing"
 
 def test_stitched_background():
-    pygame.init()
+    pg.init()
     path = os.path.join("assets", "images", "stitched_background.png")
     assert os.path.exists(path), "Stitched background missing"
-    img = pygame.image.load(path)
+    img = pg.image.load(path)
     assert img.get_width() == 1280
     assert img.get_height() == 16 * 720
 

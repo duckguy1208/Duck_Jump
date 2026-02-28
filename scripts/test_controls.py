@@ -2,14 +2,14 @@ import os
 # Use dummy video driver for headless testing
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
-import pygame
+import pg
 import pytest
 from duck import Duck
 from object import Object
 
 def test_jump_multiplier():
-    pygame.init()
-    surface = pygame.Surface((800, 600))
+    pg.init()
+    surface = pg.Surface((800, 600))
     duck = Duck(surface)
     duck.on_ground = True
     
@@ -47,8 +47,8 @@ def test_mobile_horizontal_calculation_logic():
     assert h_mult == 0.0
 
 def test_keyboard_movement_logic():
-    pygame.init()
-    surface = pygame.Surface((1280, 720))
+    pg.init()
+    surface = pg.Surface((1280, 720))
     duck = Duck(surface)
     duck.pos.x = 640
     dt = 1000 # 1 second
