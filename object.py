@@ -77,9 +77,9 @@ class Object:
         self.pos.y += y * self.vel * seconds
         self.adjust_pos()
     
-    def jump(self):
+    def jump(self, multiplier=1.0):
         if self.on_ground:
-            self.vertical_vel = self.jump_speed
+            self.vertical_vel = self.jump_speed * multiplier
             self.on_ground = False
             
     def applyGravity(self, dt, platforms=[]):

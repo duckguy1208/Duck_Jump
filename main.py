@@ -178,6 +178,23 @@ async def main():
                 if event.key == pygame.K_p:
                     paused = True
 
+            if event.type in [pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN]:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    tap_x, tap_y = event.pos
+                else:  # pygame.FINGERDOWN
+                    tap_x = event.x * SCREEN_WIDTH
+                    tap_y = event.y * SCREEN_HEIGHT
+
+                # Granular horizontal: relative to duck position
+                # If tap is at duck's x, multiplier is 0. If at screen edge, it's ~1.0 or ~-1.0
+                dist_x = tap_x - duck.pos.x
+                horizontal_multiplier = dist_x / (SCREEN_WIDTH / 2)
+                # Clamp multiplier to [-1.0, 1.0]
+                horizontal_multiplier = max(-1.0, min(1.0, horizontal_multiplier))
+                
+                if duck.on_ground:
+                    duck.jump()
+
         while paused:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
