@@ -29,6 +29,7 @@ jobs:
       - name: Build web version
         run: |
           python -m pygbag --build --cdn https://pygame-web.github.io/cdn/0.9.3/ --disable-sound-format-error main.py
+          python scripts/make_pwa.py
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
