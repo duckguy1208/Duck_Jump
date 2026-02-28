@@ -19,6 +19,7 @@ pg.init()
 mixer_available = False
 try:
     pg.mixer.init()
+    pg.mixer.set_num_channels(32)
     mixer_available = True
 except pg.error:
     print("Warning: Audio device not available. Sound disabled.")
