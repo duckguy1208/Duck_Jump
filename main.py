@@ -65,7 +65,7 @@ def generate_platform(prev_platform):
 
     return Platform(x_pos, y_pos, width, 40)
 
-def main():
+async def main():
     # Load stitched background image
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
@@ -195,7 +195,7 @@ def main():
                 ),
             )
             pg.display.flip()
-            #await asyncio.sleep(0)
+            await asyncio.sleep(0)
             continue
 
         prev_vertical_vel = duck.vertical_vel
@@ -307,7 +307,7 @@ def main():
             )
 
             pg.display.flip()
-            #await asyncio.sleep(0)
+            await asyncio.sleep(0)
 
         # dt already computed at the top of the loop; no need to tick again here.
         if not game_over and not won:
@@ -402,11 +402,7 @@ def main():
             )
 
         pg.display.flip()
-        #await asyncio.sleep(0)
-
+        await asyncio.sleep(0)
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    asyncio.run(main())
