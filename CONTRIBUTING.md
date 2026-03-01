@@ -16,10 +16,11 @@ We have a helper script that allows you to trigger Gemini using the instructions
 To run the automated workflow, execute the following command in your terminal:
 
 ```powershell
-.\gemini-task.ps1
+.\auto-work.ps1
 ```
 
 This script will:
+
 1.  Read the current context and instructions from `prompt.md`.
 2.  Invoke Gemini with the `-y` flag (auto-approving the initial prompt).
 3.  Gemini will then follow the "Objective" in the prompt, which typically involves picking a task from `TODO.md`, creating a branch, and opening a PR.
@@ -27,6 +28,7 @@ This script will:
 ## Manual Workflow
 
 If you prefer to work manually, please:
+
 1.  Create a branch for your feature or bugfix.
 2.  Keep commits small and descriptive.
 3.  Write tests for new behavior.
