@@ -113,12 +113,12 @@ if ('serviceWorker' in navigator) {
 
         if '<html lang="en-us">' in html:
             html = html.replace(
-                '<html lang="en-us">', f'<html lang="en-us">\\n{head_injection}\\n'
+                '<html lang="en-us">', f'<html lang="en-us">\n{head_injection}\n'
             )
         elif "<html>" in html:
-            html = html.replace("<html>", f"<html>\\n{head_injection}\\n")
+            html = html.replace("<html>", f"<html>\n{head_injection}\n")
         else:
-            html = head_injection + "\\n" + html
+            html = head_injection + "\n" + html
 
         with open(index_path, "w", encoding="utf-8") as f:
             f.write(html)
