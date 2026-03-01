@@ -28,7 +28,7 @@
 - [ ] collapsing platforms
 - [ ] custom platforms (not just white)
 - [ ] reason to quack (could just be for fun too)
-- [ ] no ending (repeat space background)
+- [x] no ending (repeat space background)
 - [ ] multiplayer functionality (racing)
 
 ## Tech Debt
