@@ -1,5 +1,6 @@
-import pygame
+import pygame as pg
 import random
+import asyncio
 from pathlib import Path
 from duck import Duck
 from object import Platform
@@ -9,236 +10,451 @@ from utils import clamp_platform_distance
 # location of this file, not the current working directory)
 BASE_DIR = Path(__file__).resolve().parent
 
-pygame.init()
-mixer_available = True
+
+
+pg.init()
+mixer_available = False
 try:
-    pygame.mixer.init()
+    pg.mixer.init()
+    pg.mixer.set_num_channels(32)
     mixer_available = True
-except pygame.error:
+except pg.error:
     print("Warning: Audio device not available. Sound disabled.")
 
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+sizes = pg.display.get_desktop_sizes()
+width = sizes[0][0]
 
-clock = pygame.time.Clock()
+isMobile = width < 767
 
+# Portrait for mobile, Landscape for desktop
+if isMobile:
+    SCREEN_WIDTH = 405  # Standard 9:16 aspect ratio roughly
+    SCREEN_HEIGHT = 720
+else:
+    SCREEN_WIDTH = 1280
+    SCREEN_HEIGHT = 720
+
+print("Screen Dimensions: " + str(SCREEN_WIDTH) + ", " + str(SCREEN_HEIGHT))
+
+screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+clock = pg.time.Clock()
 
 
 def generate_platform(prev_platform):
-    # Max vertical gap should be less than the duck's max jump height (~213 pixels)
-    max_dy = 210 
-    min_dy = 100
+    max_dy = 210
+    min_dy = 150
     dy = random.randint(min_dy, max_dy)
     y_pos = prev_platform.rect.y - dy
-    
-    width = random.randint(50, 200)
-    
-    # Based on dy=180, duck can travel ~290 pixels horizontally during the jump.
-    # We'll use a slightly more conservative max_dx to ensure it's comfortably reachable.
-    max_dx_init = 250 + int(prev_platform.rect.y / 100)  
+    width = random.randint(50, 170)
+    max_dx_init = 250 + int(prev_platform.rect.y / 100)
     max_dx = clamp_platform_distance(max_dx_init)
-    print(max_dx)
 
-    # The new platform should be placed such that it's reachable from the previous one.
-    # The closest point of the new platform must be within max_dx of the previous platform.
     min_x = max(0, prev_platform.rect.x - max_dx)
-    max_x = min(SCREEN_WIDTH - width, prev_platform.rect.right + max_dx - width) 
-    
+    max_x = min(SCREEN_WIDTH - width, prev_platform.rect.right + max_dx - width)
+
     if min_x <= max_x:
         x_pos = random.randint(int(min_x), int(max_x))
     else:
-        # Fallback in case of weird constraints, though with SCREEN_WIDTH=1280 it shouldn't happen
         x_pos = random.randint(0, SCREEN_WIDTH - width)
-        
+
     return Platform(x_pos, y_pos, width, 40)
 
-def main():
-    # Load stitched background image
+
+def reset_game():
+    """Return initial game state and put the duck over the first platform.
+
+    This helper lives at module scope so it can be imported directly by tests.
+    """
+    d = Duck(screen)
+    # three starter platforms (bottom first)
+    # the very first platform is fixed so the duck has a predictable
+    # starting point; subsequent platforms are created via the same
+    # logic used during gameplay to guarantee they lie within the duck's
+    # jump range.  Prior implementation hard‑coded the second and third
+    # platforms which could occasionally place them out of reach on narrow
+    # screens or unusual sizes.
+    if SCREEN_WIDTH > 400:
+        first = Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
+    else:
+        first = Platform(10, 600, SCREEN_WIDTH - 20, 40)
+
+    platforms = [first]
+    
+    # Generate initial platforms: one generation cycle (2 on desktop, 1 on mobile)
+    num_to_gen = 2 if not isMobile else 1
+    for _ in range(num_to_gen):
+        new_platform = generate_platform(platforms[-1])
+        platforms.append(new_platform)
+
+    # position duck above the first platform so it always starts there
+    d.pos = pg.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
+    d.on_ground = True
+
+    hpy = first.rect.y
+    s = 0
+    mh = SCREEN_HEIGHT / 2
+    go = False
+    w = False
+    cy = 0  # camera start at bottom of stitched image
+    return d, cy, platforms, hpy, s, mh, go, w
+
+
+async def main():
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
-        stitched_bg = pygame.image.load(str(stitched_bg_path)).convert()
+        raw_stitched_bg = pg.image.load(str(stitched_bg_path)).convert()
+        # original slice height from backgrounds.
+        original_slice_height = 720
+        # Use "Cover" logic: scale so it fills the screen without squishing.
+        # We want each slice to be exactly SCREEN_HEIGHT tall.
+        scale = max(
+            SCREEN_WIDTH / raw_stitched_bg.get_width(),
+            SCREEN_HEIGHT / original_slice_height,
+        )
+        new_w = int(raw_stitched_bg.get_width() * scale)
+        new_h = int(raw_stitched_bg.get_height() * scale)
+        stitched_bg = pg.transform.scale(raw_stitched_bg, (new_w, new_h))
     except Exception as e:
         print(f"Error loading background image: {stitched_bg_path} -> {e}")
         raise
     stitched_bg_height = stitched_bg.get_height()
     num_backgrounds = stitched_bg_height // SCREEN_HEIGHT
 
-    font = pygame.font.Font(None, 74)
-    small_font = pygame.font.Font(None, 36)
+    font = pg.font.Font(None, 74)
+    small_font = pg.font.Font(None, 36)
 
-    # Load sound effects
     quack_sound = None
     wing_flap = None
     if mixer_available:
-        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.mp3"
-        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.mp3"
+        quack_sound_path = BASE_DIR / "assets" / "sounds" / "quack_sound.ogg"
+        wing_flap_path = BASE_DIR / "assets" / "sounds" / "wing_flap.ogg"
         try:
-            quack_sound = pygame.mixer.Sound(str(quack_sound_path))
-            quack_sound.set_volume(1)
+            quack_sound = pg.mixer.Sound(str(quack_sound_path))
         except Exception as e:
             print(f"Error loading quack sound: {quack_sound_path} -> {e}")
         try:
-            wing_flap = pygame.mixer.Sound(str(wing_flap_path))
-            wing_flap.set_volume(1)
-            print(f"Wing flap sound loaded successfully from: {wing_flap_path}")
+            wing_flap = pg.mixer.Sound(str(wing_flap_path))
         except Exception as e:
             print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
 
-    def reset_game():
-        d = Duck(screen)
-        d.pos.y = SCREEN_HEIGHT / 2
-        cy = 0
-        p = [
-            Platform(100, 600, 400, 40),
-            Platform(600, 450, 400, 40),
-            Platform(200, 300, 300, 40)
-        ]
-        hpy = 300
-        s = 0
-        mh = SCREEN_HEIGHT / 2
-        go = False
-        w = False
-        return d, cy, p, hpy, s, mh, go, w
+    # def paused(): ran out of time in class
 
-    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
+    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = (
+        reset_game()
+    )
     paused = False
+    start_menu = True
+
+    # Current horizontal velocity multiplier for the current jump
+    horizontal_multiplier = 0
 
     while True:
-        # remember previous vertical velocity to detect upward transitions
+        # always tick the clock each iteration, even while the start menu is showing
+        # so that we don't accumulate a huge delta when the player finally begins.
+        dt = clock.tick(60)
+        # it is possible for a very large dt (e.g. after resuming from a pause in
+        # a debugger); clamp to something reasonable to avoid tunnelling through
+        # platforms.
+        if dt > 100:
+            dt = 100
+
+        if start_menu:
+            # Process events to clear the start menu
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                    raise SystemExit
+                if event.type in [pg.KEYDOWN, pg.MOUSEBUTTONDOWN, pg.FINGERDOWN]:
+                    # reset timing variables as we exit menu to avoid leftover
+                    # motion from a prior session
+                    start_menu = False
+                    duck.vertical_vel = 0
+                    duck.on_ground = True
+
+            bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT)
+            screen.blit(stitched_bg, ((SCREEN_WIDTH - stitched_bg.get_width()) // 2, bg_y_offset))
+            overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            screen.blit(overlay, (0, 0))
+            title_text = font.render("DUCK JUMP", True, (255, 255, 0))
+            instruction_text = small_font.render(
+                "Tap to Jump in a Direction", True, (255, 255, 255)
+            )
+            screen.blit(
+                title_text,
+                (
+                    SCREEN_WIDTH // 2 - title_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 - 50,
+                ),
+            )
+            screen.blit(
+                instruction_text,
+                (
+                    SCREEN_WIDTH // 2 - instruction_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 + 50,
+                ),
+            )
+            pg.display.flip()
+            await asyncio.sleep(0)
+            continue
+
         prev_vertical_vel = duck.vertical_vel
-        # Process player inputs.
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
                 raise SystemExit
-            if (game_over or won) and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
-            # Handle single-press actions (jump, quack) so they don't repeat while held
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    paused = not paused
-                if event.key == pygame.K_r and paused:
-                    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = reset_game()
-                    paused = False
-            if not (game_over or won) and not paused and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    duck.jump()
-                if event.key == pygame.K_SPACE:
+
+            if game_over or won:
+                if event.type in [pg.KEYDOWN, pg.MOUSEBUTTONDOWN, pg.FINGERDOWN]:
+                    (
+                        duck,
+                        camera_y,
+                        platforms,
+                        highest_platform_y,
+                        score,
+                        max_height,
+                        game_over,
+                        won,
+                    ) = reset_game()
+                    horizontal_multiplier = 0
+                    start_menu = True
+                continue
+
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_UP:
+                    if duck.on_ground:
+                        duck.jump()
+                if event.key == pg.K_SPACE:
                     duck.quack()
                     if quack_sound:
                         quack_sound.play()
+                if event.key == pg.K_p:
+                    paused = True
 
-        dt = clock.tick(60)
+            if event.type in [pg.MOUSEBUTTONDOWN, pg.FINGERDOWN]:
+                if event.type == pg.MOUSEBUTTONDOWN:
+                    tap_x, tap_y = event.pos
+                else:  # pg.FINGERDOWN
+                    tap_x = event.x * SCREEN_WIDTH
+                    tap_y = event.y * SCREEN_HEIGHT
 
-        if not paused and not game_over and not won:
-            # Decrement quack timer
-            duck.quack_timer -= dt
-            if duck.quack_timer < 0:
-                duck.quack_timer = 0
+                # Check if tap is on the duck (within 20 pixels of center)
+                # duck.pos.y is world space, we need screen space
+                duck_screen_y = duck.pos.y - camera_y
+                dist = ((tap_x - duck.pos.x) ** 2 + (tap_y - duck_screen_y) ** 2) ** 0.5
 
-            # Handle continuous arrow-key movement
-            keys = pygame.key.get_pressed()
-            dx = 0
-            if keys[pygame.K_LEFT]:
-                dx = -1
-            if keys[pygame.K_RIGHT]:
-                dx = 1
-            
-            if dx != 0:
-                duck.move(dx, 0, dt)
+                if dist <= 20:
+                    duck.quack()
+                    if quack_sound:
+                        quack_sound.play()
+                else:
+                    # Granular horizontal: relative to duck position
+                    # If tap is at duck's x, multiplier is 0. If at screen edge, it's ~1.0 or ~-1.0
+                    dist_x = tap_x - duck.pos.x
+                    horizontal_multiplier = dist_x / (SCREEN_WIDTH / 2)
+                    # Clamp multiplier to [-1.0, 1.0]
+                    horizontal_multiplier = max(-1.0, min(1.0, horizontal_multiplier))
 
-           
+                    if duck.on_ground:
+                        duck.jump()
 
-            # Note: jump and quack are handled on KEYDOWN events above to avoid repeating while held
-                
+        while paused:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                    raise SystemExit
 
-            # Play wing flap only when duck starts moving upward (transition from non-up to up)
-            if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
-                if wing_flap:
-                    wing_flap.play()
+                if event.type in [pg.KEYDOWN, pg.MOUSEBUTTONDOWN, pg.FINGERDOWN]:
+                    paused = False
 
-            duck.applyGravity(dt, platforms)
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_p:
+                        paused = False
+                    if event.key == pg.K_r:
+                        (
+                            duck,
+                            camera_y,
+                            platforms,
+                            highest_platform_y,
+                            score,
+                            max_height,
+                            game_over,
+                            won,
+                        ) = reset_game()
+                        paused = False
+                        start_menu = True
 
-            # Update score based on height reached
-            if duck.pos.y < max_height:
-                score += int((max_height - duck.pos.y) / 10)
-                max_height = duck.pos.y
-
-            # Camera follow logic: if duck is in the upper half of the screen, scroll up
-            if duck.pos.y < camera_y + SCREEN_HEIGHT / 2:
-                camera_y = duck.pos.y - SCREEN_HEIGHT / 2
-
-            # Check for win condition: passed all backgrounds
-            level_index = int(max(0, -camera_y) // SCREEN_HEIGHT)
-            if level_index >= num_backgrounds:
-                won = True
-
-            # Procedural platform generation
-            while highest_platform_y > camera_y - SCREEN_HEIGHT:
-                new_platform = generate_platform(platforms[-1])
-                platforms.append(new_platform)
-                highest_platform_y = new_platform.rect.y
-
-            # Clean up old platforms
-            platforms = [p for p in platforms if p.rect.y < camera_y + SCREEN_HEIGHT + 100]
-
-            # Check for game over
-            if duck.pos.y > camera_y + SCREEN_HEIGHT:
-                game_over = True
-
-        # Rendering
-        # Calculate background offset: bottom of stitched image is camera_y = 0
-        bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT + camera_y)
-        # Clamp to ensure we don't show black at the top if we go past the win line
-        bg_y_offset = min(0, max(-(stitched_bg_height - SCREEN_HEIGHT), bg_y_offset))
-            
-        screen.blit(stitched_bg, (0, bg_y_offset))  # Draw the background image
-
-        # Render platforms
-        for p in platforms:
-            p.draw(screen, camera_y)
-
-        # Render the graphics here.
-        duck.draw(camera_y)
-
-        # Draw score
-        score_text = font.render(f"Score: {score}", True, (255, 255, 255))
-        screen.blit(score_text, (10, 10))
-
-        if game_over or won:
-            # Dim the screen
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 150))
-            screen.blit(overlay, (0, 0))
-
-            if won:
-                title_text = font.render("YOU WIN!", True, (255, 255, 0))
-            else:
-                title_text = font.render("GAME OVER", True, (255, 255, 255))
-                
-            restart_text = small_font.render("Press R to Restart", True, (255, 255, 255))
-            
-            screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
-
-        if paused:
-            # Dim the screen
-            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
 
             continue_text = font.render("Press P To Continue", True, (255, 255, 0))
             restart_text = font.render("Press R To Restart", True, (255, 255, 0))
 
-            screen.blit(continue_text, (SCREEN_WIDTH // 2 - continue_text.get_width() // 2, SCREEN_HEIGHT // 2 - 50))
-            screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+            screen.blit(
+                continue_text,
+                (
+                    SCREEN_WIDTH // 2 - continue_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 - 50,
+                ),
+            )
+            screen.blit(
+                restart_text,
+                (
+                    SCREEN_WIDTH // 2 - restart_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 + 50,
+                ),
+            )
 
-        pygame.display.flip()  # Refresh on-screen display
+            pg.display.flip()
+            await asyncio.sleep(0)
+
+        # dt already computed at the top of the loop; no need to tick again here.
+        if not game_over and not won:
+            duck.quack_timer -= dt
+            if duck.quack_timer < 0:
+                duck.quack_timer = 0
+
+            # Keyboard horizontal movement
+            keys = pg.key.get_pressed()
+            kb_h = 0
+            if keys[pg.K_LEFT]:
+                kb_h = -0.75
+            elif keys[pg.K_RIGHT]:
+                kb_h = 0.75
+
+            # effective multiplier: keyboard overrides tap trajectory
+            move_h = kb_h if kb_h != 0 else horizontal_multiplier
+
+            # If duck lands, reset lateral movement (trajectory)
+            if duck.on_ground:
+                horizontal_multiplier = 0
+
+            if move_h != 0:
+                duck.move(move_h, 0, dt)
+
+            duck.applyGravity(dt, platforms)
+
+            if prev_vertical_vel >= 0 and duck.vertical_vel < 0:
+                if wing_flap:
+                    wing_flap.play()
+
+            if duck.pos.y < max_height:
+                score += int((max_height - duck.pos.y) / 10)
+                max_height = duck.pos.y
+
+            if duck.pos.y < camera_y + SCREEN_HEIGHT / 2:
+                camera_y = duck.pos.y - SCREEN_HEIGHT / 2
+
+            # calculate which background slice we're in every frame so the win
+            # condition works reliably; this used to be indented under the camera
+            # update and could leave ``level_index`` undefined, crashing on input.
+            level_index = int(max(0, -camera_y) // SCREEN_HEIGHT)
+            if level_index >= num_backgrounds:
+                won = True
+
+            while highest_platform_y > camera_y - SCREEN_HEIGHT:
+                # Generate 2 platforms from the same base on desktop, 1 on mobile
+                # This creates branching paths upward
+                num_platforms_to_generate = 2 if not isMobile else 1
+                base_platform = platforms[-1]
+                new_platforms = []
+                
+                for i in range(num_platforms_to_generate):
+                    new_platform = generate_platform(base_platform)
+                    
+                    # On desktop, separate the two platforms by max jump distance (horizontal and vertical)
+                    if not isMobile and i == 1 and len(new_platforms) > 0:
+                        first_platform = new_platforms[0]
+                        
+                        # Calculate the max horizontal jump distance
+                        max_dx_init = 210 + int(base_platform.rect.y / 100)
+                        max_dx = clamp_platform_distance(max_dx_init)
+                        
+                        # Position second platform separated from first by max_dx horizontally
+                        first_center = first_platform.rect.centerx
+                        first_y = first_platform.rect.y
+                        
+                        # If first is on the left, put second on the right (separated by max_dx)
+                        if first_center < SCREEN_WIDTH / 2:
+                            # Target position for second platform center
+                            target_x = first_center + max_dx
+                            new_platform.rect.centerx = int(target_x)
+                        else:
+                            # Target position for second platform center (to the left)
+                            target_x = first_center - max_dx
+                            new_platform.rect.centerx = int(target_x)
+                        
+                        # Also separate vertically - offset by a random amount within the jump range
+                        vertical_offset = random.randint(200, 210)
+                        new_platform.rect.y = first_y - vertical_offset
+                        
+                        # Clamp x to screen bounds
+                        new_platform.rect.x = max(0, min(SCREEN_WIDTH - new_platform.rect.width, new_platform.rect.x))
+                    
+                    platforms.append(new_platform)
+                    new_platforms.append(new_platform)
+                
+                # Update highest_platform_y based on the highest of the new platforms
+                if new_platforms:
+                    highest_platform_y = min(p.rect.y for p in new_platforms)
+
+                
+                # Update highest_platform_y based on the highest of the new platforms
+                if new_platforms:
+                    highest_platform_y = min(p.rect.y for p in new_platforms)
+
+
+            platforms = [
+                p for p in platforms if p.rect.y < camera_y + SCREEN_HEIGHT + 100
+            ]
+
+            if duck.pos.y > camera_y + SCREEN_HEIGHT:
+                game_over = True
+
+        bg_y_offset = -(stitched_bg_height - SCREEN_HEIGHT + camera_y)
+        bg_y_offset = min(0, max(-(stitched_bg_height - SCREEN_HEIGHT), bg_y_offset))
+        screen.blit(
+            stitched_bg, ((SCREEN_WIDTH - stitched_bg.get_width()) // 2, bg_y_offset)
+        )
+
+        for p in platforms:
+            p.draw(screen, camera_y)
+        duck.draw(camera_y)
+
+        score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+        screen.blit(score_text, (10, 10))
+
+        if game_over or won:
+            overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            screen.blit(overlay, (0, 0))
+            title_text = font.render(
+                "YOU WIN!" if won else "GAME OVER", True, (255, 255, 0)
+            )
+            restart_text = small_font.render("Tap to Restart", True, (255, 255, 255))
+            screen.blit(
+                title_text,
+                (
+                    SCREEN_WIDTH // 2 - title_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 - 50,
+                ),
+            )
+            screen.blit(
+                restart_text,
+                (
+                    SCREEN_WIDTH // 2 - restart_text.get_width() // 2,
+                    SCREEN_HEIGHT // 2 + 50,
+                ),
+            )
+
+        pg.display.flip()
+        await asyncio.sleep(0)
+
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         pass
