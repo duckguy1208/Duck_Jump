@@ -16,14 +16,8 @@ def stitch_backgrounds():
         "background_sky5.png",
         "background_space1.png",
         "background_space2.png",
-        "background_space3.png",
         "background_space4.png",
-        "background_purple.png",
-        "background_blue.png",
-        "background_green.png",
-        "background_yellow.png",
-        "background_orange.png",
-        "background_red.png",
+        "background_space3.png",
     ]
 
     total_height = len(background_files) * SCREEN_HEIGHT
