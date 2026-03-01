@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 pygame-ce
 pygbag
 ruff
+=======
+pygame-ce
+pygbag
+ruff
+>>>>>>> a9ed294dd37460fdc16fab7ae651ad86a6515843

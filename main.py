@@ -42,12 +42,17 @@ clock = pg.time.Clock()
 
 
 def generate_platform(prev_platform):
-    max_dy = 210
-    min_dy = 150
+    # Max vertical gap should be less than the duck's max jump height (~213 pixels)
+    max_dy = 210 
+    min_dy = 100
     dy = random.randint(min_dy, max_dy)
     y_pos = prev_platform.rect.y - dy
-    width = random.randint(50, 170)
-    max_dx_init = 250 + int(prev_platform.rect.y / 100)
+    
+    width = random.randint(50, 200)
+    
+    # Based on dy=180, duck can travel ~290 pixels horizontally during the jump.
+    # We'll use a slightly more conservative max_dx to ensure it's comfortably reachable.
+    max_dx_init = 250 + int(prev_platform.rect.y / 100)  
     max_dx = clamp_platform_distance(max_dx_init)
 
     min_x = max(0, prev_platform.rect.x - max_dx)
@@ -60,47 +65,8 @@ def generate_platform(prev_platform):
 
     return Platform(x_pos, y_pos, width, 40)
 
-
-def reset_game():
-    """Return initial game state and put the duck over the first platform.
-
-    This helper lives at module scope so it can be imported directly by tests.
-    """
-    d = Duck(screen)
-    # three starter platforms (bottom first)
-    # the very first platform is fixed so the duck has a predictable
-    # starting point; subsequent platforms are created via the same
-    # logic used during gameplay to guarantee they lie within the duck's
-    # jump range.  Prior implementation hard‑coded the second and third
-    # platforms which could occasionally place them out of reach on narrow
-    # screens or unusual sizes.
-    if SCREEN_WIDTH > 400:
-        first = Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
-    else:
-        first = Platform(10, 600, SCREEN_WIDTH - 20, 40)
-
-    platforms = [first]
-    
-    # Generate initial platforms: one generation cycle (2 on desktop, 1 on mobile)
-    num_to_gen = 2 if not isMobile else 1
-    for _ in range(num_to_gen):
-        new_platform = generate_platform(platforms[-1])
-        platforms.append(new_platform)
-
-    # position duck above the first platform so it always starts there
-    d.pos = pg.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
-    d.on_ground = True
-
-    hpy = first.rect.y
-    s = 0
-    mh = SCREEN_HEIGHT / 2
-    go = False
-    w = False
-    cy = 0  # camera start at bottom of stitched image
-    return d, cy, platforms, hpy, s, mh, go, w
-
-
-async def main():
+def main():
+    # Load stitched background image
     stitched_bg_path = BASE_DIR / "assets" / "images" / "stitched_background.png"
     try:
         raw_stitched_bg = pg.image.load(str(stitched_bg_path)).convert()
@@ -355,61 +321,14 @@ async def main():
                 won = True
 
             while highest_platform_y > camera_y - SCREEN_HEIGHT:
-                # Generate 2 platforms from the same base on desktop, 1 on mobile
-                # This creates branching paths upward
-                num_platforms_to_generate = 2 if not isMobile else 1
-                base_platform = platforms[-1]
-                new_platforms = []
-                
-                for i in range(num_platforms_to_generate):
-                    new_platform = generate_platform(base_platform)
-                    
-                    # On desktop, separate the two platforms by max jump distance (horizontal and vertical)
-                    if not isMobile and i == 1 and len(new_platforms) > 0:
-                        first_platform = new_platforms[0]
-                        
-                        # Calculate the max horizontal jump distance
-                        max_dx_init = 210 + int(base_platform.rect.y / 100)
-                        max_dx = clamp_platform_distance(max_dx_init)
-                        
-                        # Position second platform separated from first by max_dx horizontally
-                        first_center = first_platform.rect.centerx
-                        first_y = first_platform.rect.y
-                        
-                        # If first is on the left, put second on the right (separated by max_dx)
-                        if first_center < SCREEN_WIDTH / 2:
-                            # Target position for second platform center
-                            target_x = first_center + max_dx
-                            new_platform.rect.centerx = int(target_x)
-                        else:
-                            # Target position for second platform center (to the left)
-                            target_x = first_center - max_dx
-                            new_platform.rect.centerx = int(target_x)
-                        
-                        # Also separate vertically - offset by a random amount within the jump range
-                        vertical_offset = random.randint(200, 210)
-                        new_platform.rect.y = first_y - vertical_offset
-                        
-                        # Clamp x to screen bounds
-                        new_platform.rect.x = max(0, min(SCREEN_WIDTH - new_platform.rect.width, new_platform.rect.x))
-                    
-                    platforms.append(new_platform)
-                    new_platforms.append(new_platform)
-                
-                # Update highest_platform_y based on the highest of the new platforms
-                if new_platforms:
-                    highest_platform_y = min(p.rect.y for p in new_platforms)
+                new_platform = generate_platform(platforms[-1])
+                platforms.append(new_platform)
+                highest_platform_y = new_platform.rect.y
 
-                
-                # Update highest_platform_y based on the highest of the new platforms
-                if new_platforms:
-                    highest_platform_y = min(p.rect.y for p in new_platforms)
+            # Clean up old platforms
+            platforms = [p for p in platforms if p.rect.y < camera_y + SCREEN_HEIGHT + 100]
 
-
-            platforms = [
-                p for p in platforms if p.rect.y < camera_y + SCREEN_HEIGHT + 100
-            ]
-
+            # Check for game over
             if duck.pos.y > camera_y + SCREEN_HEIGHT:
                 game_over = True
 
