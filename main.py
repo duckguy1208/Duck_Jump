@@ -104,7 +104,40 @@ def main():
         except Exception as e:
             print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
 
-    # def paused(): ran out of time in class
+    def reset_game():
+   
+        d = Duck(screen)
+        # three starter platforms (bottom first)
+        # the very first platform is fixed so the duck has a predictable
+        # starting point; subsequent platforms are created via the same
+        # logic used during gameplay to guarantee they lie within the duck's
+        # jump range.  Prior implementation hard‑coded the second and third
+        # platforms which could occasionally place them out of reach on narrow
+        # screens or unusual sizes.
+        if SCREEN_WIDTH > 400:
+            first = Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
+        else:
+            first = Platform(10, 600, SCREEN_WIDTH - 20, 40)
+
+        platforms = [first]
+    
+        # Generate initial platforms: one generation cycle (2 on desktop, 1 on mobile)
+        num_to_gen = 2 if not isMobile else 1
+        for _ in range(num_to_gen):
+            new_platform = generate_platform(platforms[-1])
+            platforms.append(new_platform)
+
+        # position duck above the first platform so it always starts there
+        d.pos = pg.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
+        d.on_ground = True
+
+        hpy = first.rect.y
+        s = 0
+        mh = SCREEN_HEIGHT / 2
+        go = False
+        w = False
+        cy = 0  # camera start at bottom of stitched image
+        return d, cy, platforms, hpy, s, mh, go, w
 
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = (
         reset_game()
@@ -162,7 +195,7 @@ def main():
                 ),
             )
             pg.display.flip()
-            await asyncio.sleep(0)
+            #await asyncio.sleep(0)
             continue
 
         prev_vertical_vel = duck.vertical_vel
@@ -274,7 +307,7 @@ def main():
             )
 
             pg.display.flip()
-            await asyncio.sleep(0)
+            #await asyncio.sleep(0)
 
         # dt already computed at the top of the loop; no need to tick again here.
         if not game_over and not won:
@@ -369,7 +402,7 @@ def main():
             )
 
         pg.display.flip()
-        await asyncio.sleep(0)
+        #await asyncio.sleep(0)
 
 
 if __name__ == "__main__":
