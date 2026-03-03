@@ -346,13 +346,7 @@ async def main():
             if duck.pos.y < camera_y + SCREEN_HEIGHT / 2:
                 camera_y = duck.pos.y - SCREEN_HEIGHT / 2
 
-            # calculate which background slice we're in every frame so the win
-            # condition works reliably; this used to be indented under the camera
-            # update and could leave ``level_index`` undefined, crashing on input.
-            level_index = int(max(0, -camera_y) // SCREEN_HEIGHT)
-            if level_index >= num_backgrounds:
-                won = True
-
+           
             while highest_platform_y > camera_y - SCREEN_HEIGHT:
                 new_platform = generate_platform(platforms[-1])
                 platforms.append(new_platform)
