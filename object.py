@@ -149,6 +149,9 @@ class Object:
         # Platform collisions
         player_rect = self.get_rect()
         for p in platforms:
+            if getattr(p, "is_broken", False):
+                continue
+
             if player_rect.colliderect(p.rect):
                 # Only land on top if falling
                 if self.vertical_vel > 0:
@@ -158,6 +161,8 @@ class Object:
                         self.pos.y = p.rect.top - half_sprite
                         self.vertical_vel = 0
                         self.on_ground = True
+                        if hasattr(p, "on_stand"):
+                            p.on_stand()
 
 
 def objectFactory(x, y):
@@ -169,7 +174,71 @@ class Platform:
         self.rect = pg.Rect(x, y, width, height)
         self.color = (255, 255, 255)  # White color
 
+    def update(self, dt):
+        pass
+
     def draw(self, surface, camera_y=0):
         draw_rect = self.rect.copy()
         draw_rect.y -= camera_y
         pg.draw.rect(surface, self.color, draw_rect)
+
+
+class CollapsingPlatform(Platform):
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height)
+        self.color = (200, 200, 255)  # Light blue/grey to be visually distinct
+        self.collapse_timer = 0
+        self.is_collapsing = False
+        self.is_broken = False
+        self.is_cracked = False  # For quack identification
+        self.show_cracks = False
+
+    def on_stand(self):
+        if not self.is_broken:
+            self.is_collapsing = True
+
+    def update(self, dt):
+        if self.is_collapsing and not self.is_broken:
+            self.collapse_timer += dt
+            if self.collapse_timer >= 2000:
+                self.is_broken = True
+            elif self.collapse_timer >= 1000:
+                self.show_cracks = True
+
+    def draw(self, surface, camera_y=0):
+        if self.is_broken:
+            return
+
+        draw_rect = self.rect.copy()
+        draw_rect.y -= camera_y
+
+        # Draw the platform base
+        pg.draw.rect(surface, self.color, draw_rect)
+
+        # Draw cracks if breaking or identified by quack
+        if self.show_cracks or self.is_cracked:
+            crack_color = (100, 100, 100)
+            # Simple crack lines
+            pg.draw.line(
+                surface,
+                crack_color,
+                (draw_rect.left + 5, draw_rect.top + 5),
+                (draw_rect.left + 20, draw_rect.top + 15),
+                2,
+            )
+            pg.draw.line(
+                surface,
+                crack_color,
+                (draw_rect.right - 5, draw_rect.top + 5),
+                (draw_rect.right - 20, draw_rect.top + 15),
+                2,
+            )
+            if self.show_cracks:
+                # More cracks if it's actually breaking
+                pg.draw.line(
+                    surface,
+                    crack_color,
+                    (draw_rect.centerx - 10, draw_rect.top + 2),
+                    (draw_rect.centerx + 10, draw_rect.bottom - 2),
+                    2,
+                )
