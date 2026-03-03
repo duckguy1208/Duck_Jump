@@ -188,6 +188,7 @@ class CollapsingPlatform(Platform):
         super().__init__(x, y, width, height)
         self.color = (200, 200, 255)  # Light blue/grey to be visually distinct
         self.collapse_timer = 0
+        self.respawn_timer = 0
         self.is_collapsing = False
         self.is_broken = False
         self.is_cracked = False  # For quack identification
@@ -198,6 +199,16 @@ class CollapsingPlatform(Platform):
             self.is_collapsing = True
 
     def update(self, dt):
+        if self.is_broken:
+            self.respawn_timer += dt
+            if self.respawn_timer >= 5000:  # Respawn after 5 seconds
+                self.is_broken = False
+                self.is_collapsing = False
+                self.collapse_timer = 0
+                self.respawn_timer = 0
+                self.show_cracks = False
+            return
+
         if self.is_collapsing and not self.is_broken:
             self.collapse_timer += dt
             if self.collapse_timer >= 2000:

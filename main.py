@@ -63,8 +63,8 @@ def generate_platform(prev_platform):
     else:
         x_pos = random.randint(0, SCREEN_WIDTH - width)
 
-    # 20% chance of a collapsing platform
-    if random.random() < 0.2:
+    # 40% chance of a collapsing platform
+    if random.random() < 0.4:
         return CollapsingPlatform(x_pos, y_pos, width, 40)
     return Platform(x_pos, y_pos, width, 40)
 
