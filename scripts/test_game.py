@@ -162,8 +162,9 @@ def test_reset_spawns_on_starting_platform():
 
     pg.init()
 
-    duck, camera_y, platforms, hpy, score, mh, go, w = mainmod.reset_game()
+    duck, camera_y, platforms, heads, score, mh, go, w = mainmod.reset_game()
     assert platforms, "no platforms were created"
+    # Duck spawns sitting on the first platform
     first = platforms[0]
     # duck x should match platform center
     assert duck.pos.x == first.rect.centerx
@@ -180,16 +181,22 @@ def test_initial_platforms_reachable():
     pg.init()
     # reproducible starter platforms during tests
     random.seed(0)
-    duck, camera_y, platforms, *_ = mainmod.reset_game()
-    assert len(platforms) >= 3
-
-    # reuse helper from above tests
-    assert is_reachable(platforms[0], platforms[1]), (
-        f"Second starter platform {platforms[1].rect} not reachable from {platforms[0].rect}"
-    )
-    assert is_reachable(platforms[1], platforms[2]), (
-        f"Third starter platform {platforms[2].rect} not reachable from {platforms[1].rect}"
-    )
+    duck, camera_y, platforms, heads, *_ = mainmod.reset_game()
+    
+    # In the new dynamic system, every platform (except starters) 
+    # should be reachable from SOME platform that was generated before it.
+    # We'll check that for each platform, there exists a previous platform 
+    # it is reachable from.
+    for i in range(len(heads), len(platforms)):
+        p_current = platforms[i]
+        reachable_from_any = False
+        # Check platforms before it in the list
+        for j in range(i):
+            p_prev = platforms[j]
+            if is_reachable(p_prev, p_current):
+                reachable_from_any = True
+                break
+        assert reachable_from_any, f"Platform {i} at {p_current.rect} not reachable from any previous platform"
 
 
 def test_game_over_condition():

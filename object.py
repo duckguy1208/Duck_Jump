@@ -124,12 +124,15 @@ class Object:
         )
 
     def get_rect(self):
-        half_sprite = self.sprite_size / 2
+        # The duck is 120x120, but the legs are centered and narrow.
+        # We'll make the hitbox 20 pixels wide for precision.
+        hitbox_width = 20
+        hitbox_height = self.sprite_size
         return pg.Rect(
-            self.pos.x - half_sprite,
-            self.pos.y - half_sprite,
-            self.sprite_size,
-            self.sprite_size,
+            self.pos.x - hitbox_width / 2,
+            self.pos.y - hitbox_height / 2,
+            hitbox_width,
+            hitbox_height,
         )
 
     def adjust_pos(self, platforms=[]):

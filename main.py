@@ -9,7 +9,7 @@ from utils import clamp_platform_distance
 # Base directory for this script (ensure asset paths are resolved relative to the
 # location of this file, not the current working directory)
 BASE_DIR = Path(__file__).resolve().parent
-
+COLLAPSE_CHANCE = 0.4
 
 
 pg.init()
@@ -41,67 +41,91 @@ screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pg.time.Clock()
 
 
-def generate_platform(prev_platform):
+def generate_platform(prev_platform, existing_platforms=None):
     # Max vertical gap should be less than the duck's max jump height (~213 pixels)
-    max_dy = 210 
+    max_dy = 210
     min_dy = 100
-    dy = random.randint(min_dy, max_dy)
-    y_pos = prev_platform.rect.y - dy
     
-    width = random.randint(50, 200)
+    attempts = 0
+    while attempts < 10:
+        dy = random.randint(min_dy, max_dy)
+        y_pos = prev_platform.rect.y - dy
+
+        width = random.randint(100, 250)
+
+        # Based on dy=180, duck can travel ~290 pixels horizontally during the jump.
+        max_dx_init = 250 + int(prev_platform.rect.y / 100)
+        max_dx = clamp_platform_distance(max_dx_init)
+
+        min_x = max(0, prev_platform.rect.x - max_dx)
+        max_x = min(SCREEN_WIDTH - width, prev_platform.rect.right + max_dx - width)
+
+        if min_x <= max_x:
+            x_pos = random.randint(int(min_x), int(max_x))
+        else:
+            x_pos = random.randint(0, int(SCREEN_WIDTH - width))
+
+        # Check for overlaps if existing_platforms is provided
+        new_rect = pg.Rect(x_pos, y_pos, width, 40)
+        overlap = False
+        if existing_platforms:
+            # Only check against platforms that are vertically close
+            for p in existing_platforms:
+                if abs(p.rect.y - y_pos) < 60: # 40 height + 20 buffer
+                    if new_rect.colliderect(p.rect.inflate(20, 20)):
+                        overlap = True
+                        break
+        
+        if not overlap:
+            # 40% chance of a collapsing platform
+            if random.random() < COLLAPSE_CHANCE:
+                return CollapsingPlatform(x_pos, y_pos, width, 40)
+            return Platform(x_pos, y_pos, width, 40)
+        
+        attempts += 1
     
-    # Based on dy=180, duck can travel ~290 pixels horizontally during the jump.
-    # We'll use a slightly more conservative max_dx to ensure it's comfortably reachable.
-    max_dx_init = 250 + int(prev_platform.rect.y / 100)  
-    max_dx = clamp_platform_distance(max_dx_init)
-
-    min_x = max(0, prev_platform.rect.x - max_dx)
-    max_x = min(SCREEN_WIDTH - width, prev_platform.rect.right + max_dx - width)
-
-    if min_x <= max_x:
-        x_pos = random.randint(int(min_x), int(max_x))
-    else:
-        x_pos = random.randint(0, SCREEN_WIDTH - width)
-
-    # 40% chance of a collapsing platform
-    if random.random() < 0.4:
-        return CollapsingPlatform(x_pos, y_pos, width, 40)
-    return Platform(x_pos, y_pos, width, 40)
+    # Fallback to whatever we got if we can't find a non-overlapping spot after 10 tries
+    # but maybe slightly offset it
+    return Platform(random.randint(0, int(SCREEN_WIDTH - 150)), prev_platform.rect.y - 150, 150, 40)
 
 def reset_game():
-   
     d = Duck(screen)
-    # three starter platforms (bottom first)
-    # the very first platform is fixed so the duck has a predictable
-    # starting point; subsequent platforms are created via the same
-    # logic used during gameplay to guarantee they lie within the duck's
-    # jump range.  Prior implementation hard‑coded the second and third
-    # platforms which could occasionally place them out of reach on narrow
-    # screens or unusual sizes.
-    if SCREEN_WIDTH > 400:
-        first = Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
+    
+    heads = []
+    platforms = []
+
+    if SCREEN_WIDTH > 800:
+        # Start with 2 paths on desktop
+        p1 = Platform(SCREEN_WIDTH // 3 - 100, 600, 200, 40)
+        p2 = Platform(2 * SCREEN_WIDTH // 3 - 100, 500, 200, 40) # Staggered
+        platforms.extend([p1, p2])
+        heads.extend([p1, p2])
     else:
-        first = Platform(10, 600, SCREEN_WIDTH - 20, 40)
+        # Single path for mobile
+        p1 = Platform(SCREEN_WIDTH // 2 - 100, 600, 200, 40)
+        platforms.append(p1)
+        heads.append(p1)
 
-    platforms = [first]
-
-    # Generate initial platforms: one generation cycle (2 on desktop, 1 on mobile)
-    num_to_gen = 2 if not isMobile else 1
+    # Generate initial platforms
+    num_to_gen = 3 if not isMobile else 2
     for _ in range(num_to_gen):
-        new_platform = generate_platform(platforms[-1])
-        platforms.append(new_platform)
+        new_heads = []
+        for h in heads:
+            new_p = generate_platform(h, platforms)
+            platforms.append(new_p)
+            new_heads.append(new_p)
+        heads = new_heads
 
-    # position duck above the first platform so it always starts there
-    d.pos = pg.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
+    # position duck above the first platform
+    d.pos = pg.Vector2(platforms[0].rect.centerx, platforms[0].rect.top - d.sprite_size / 2)
     d.on_ground = True
 
-    hpy = first.rect.y
-    s = 0
-    mh = SCREEN_HEIGHT / 2
-    go = False
-    w = False
-    cy = 0  # camera start at bottom of stitched image
-    return d, cy, platforms, hpy, s, mh, go, w
+    score = 0
+    max_height = SCREEN_HEIGHT / 2
+    game_over = False
+    won = False
+    camera_y = 0
+    return d, camera_y, platforms, heads, score, max_height, game_over, won
 
 async def main():
     # Load stitched background image
@@ -142,7 +166,7 @@ async def main():
         except Exception as e:
             print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
 
-    duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = (
+    duck, camera_y, platforms, heads, score, max_height, game_over, won = (
         reset_game()
     )
     paused = False
@@ -213,7 +237,7 @@ async def main():
                         duck,
                         camera_y,
                         platforms,
-                        highest_platform_y,
+                        heads,
                         score,
                         max_height,
                         game_over,
@@ -278,7 +302,7 @@ async def main():
                             duck,
                             camera_y,
                             platforms,
-                            highest_platform_y,
+                            heads,
                             score,
                             max_height,
                             game_over,
@@ -359,11 +383,48 @@ async def main():
             if duck.pos.y < camera_y + SCREEN_HEIGHT / 2:
                 camera_y = duck.pos.y - SCREEN_HEIGHT / 2
 
-           
-            while highest_platform_y > camera_y - SCREEN_HEIGHT:
-                new_platform = generate_platform(platforms[-1])
-                platforms.append(new_platform)
-                highest_platform_y = new_platform.rect.y
+            # Generation loop for variable pathways
+            # Limit to 4 heads on desktop, 1 on mobile
+            max_heads = 1 if isMobile else 4
+            
+            new_heads = []
+            for h in heads:
+                curr_h = h
+                while curr_h.rect.y > camera_y - SCREEN_HEIGHT:
+                    # Chance to split, merge, or generate normally
+                    roll = random.random()
+                    # Higher split chance (10%), lower merge chance (1%)
+                    if roll < 0.10 and len(heads) + len(new_heads) < max_heads:
+                        # Split: Generate two from one
+                        p1 = generate_platform(curr_h, platforms)
+                        platforms.append(p1)
+                        p2 = generate_platform(curr_h, platforms)
+                        platforms.append(p2)
+                        
+                        curr_h = p1
+                        new_heads.append(p2)
+                    elif roll < 0.01 and len(heads) + len(new_heads) > 1:
+                        # Merge/End: Stop generating from this head
+                        curr_h = None
+                        break
+                    else:
+                        # Normal generation
+                        curr_h = generate_platform(curr_h, platforms)
+                        platforms.append(curr_h)
+                
+                if curr_h:
+                    new_heads.append(curr_h)
+            
+            # Ensure at least one head remains
+            if not new_heads and platforms:
+                # Find the highest platform and make it a head
+                highest = platforms[0]
+                for p in platforms:
+                    if p.rect.y < highest.rect.y:
+                        highest = p
+                new_heads.append(highest)
+            
+            heads = new_heads
 
             # Clean up old platforms
             platforms = [p for p in platforms if p.rect.y < camera_y + SCREEN_HEIGHT + 100]
