@@ -3,7 +3,7 @@ import random
 import asyncio
 from pathlib import Path
 from duck import Duck
-from object import Platform
+from object import Platform, CollapsingPlatform
 from utils import clamp_platform_distance
 
 # Base directory for this script (ensure asset paths are resolved relative to the
@@ -63,7 +63,45 @@ def generate_platform(prev_platform):
     else:
         x_pos = random.randint(0, SCREEN_WIDTH - width)
 
+    # 40% chance of a collapsing platform
+    if random.random() < 0.4:
+        return CollapsingPlatform(x_pos, y_pos, width, 40)
     return Platform(x_pos, y_pos, width, 40)
+
+def reset_game():
+   
+    d = Duck(screen)
+    # three starter platforms (bottom first)
+    # the very first platform is fixed so the duck has a predictable
+    # starting point; subsequent platforms are created via the same
+    # logic used during gameplay to guarantee they lie within the duck's
+    # jump range.  Prior implementation hard‑coded the second and third
+    # platforms which could occasionally place them out of reach on narrow
+    # screens or unusual sizes.
+    if SCREEN_WIDTH > 400:
+        first = Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
+    else:
+        first = Platform(10, 600, SCREEN_WIDTH - 20, 40)
+
+    platforms = [first]
+
+    # Generate initial platforms: one generation cycle (2 on desktop, 1 on mobile)
+    num_to_gen = 2 if not isMobile else 1
+    for _ in range(num_to_gen):
+        new_platform = generate_platform(platforms[-1])
+        platforms.append(new_platform)
+
+    # position duck above the first platform so it always starts there
+    d.pos = pg.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
+    d.on_ground = True
+
+    hpy = first.rect.y
+    s = 0
+    mh = SCREEN_HEIGHT / 2
+    go = False
+    w = False
+    cy = 0  # camera start at bottom of stitched image
+    return d, cy, platforms, hpy, s, mh, go, w
 
 async def main():
     # Load stitched background image
@@ -103,41 +141,6 @@ async def main():
             wing_flap = pg.mixer.Sound(str(wing_flap_path))
         except Exception as e:
             print(f"Error loading wing flap sound: {wing_flap_path} -> {e}")
-
-    def reset_game():
-   
-        d = Duck(screen)
-        # three starter platforms (bottom first)
-        # the very first platform is fixed so the duck has a predictable
-        # starting point; subsequent platforms are created via the same
-        # logic used during gameplay to guarantee they lie within the duck's
-        # jump range.  Prior implementation hard‑coded the second and third
-        # platforms which could occasionally place them out of reach on narrow
-        # screens or unusual sizes.
-        if SCREEN_WIDTH > 400:
-            first = Platform(SCREEN_WIDTH // 2 - 200, 600, 400, 40)
-        else:
-            first = Platform(10, 600, SCREEN_WIDTH - 20, 40)
-
-        platforms = [first]
-    
-        # Generate initial platforms: one generation cycle (2 on desktop, 1 on mobile)
-        num_to_gen = 2 if not isMobile else 1
-        for _ in range(num_to_gen):
-            new_platform = generate_platform(platforms[-1])
-            platforms.append(new_platform)
-
-        # position duck above the first platform so it always starts there
-        d.pos = pg.Vector2(first.rect.centerx, first.rect.top - d.sprite_size / 2)
-        d.on_ground = True
-
-        hpy = first.rect.y
-        s = 0
-        mh = SCREEN_HEIGHT / 2
-        go = False
-        w = False
-        cy = 0  # camera start at bottom of stitched image
-        return d, cy, platforms, hpy, s, mh, go, w
 
     duck, camera_y, platforms, highest_platform_y, score, max_height, game_over, won = (
         reset_game()
@@ -332,6 +335,16 @@ async def main():
 
             if move_h != 0:
                 duck.move(move_h, 0, dt)
+
+            # Update platforms
+            for p in platforms:
+                p.update(dt)
+                if duck.quack_timer > 0:
+                    if isinstance(p, CollapsingPlatform):
+                        p.is_cracked = True
+                else:
+                    if isinstance(p, CollapsingPlatform):
+                        p.is_cracked = False
 
             duck.applyGravity(dt, platforms)
 

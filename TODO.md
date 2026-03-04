@@ -25,11 +25,11 @@
 - [x] mobile support
 - [x] optimize for portrait view on mobile, keep landscape on desktop (detect based on screen width, probably)
 - [ ] Ensure there is sometimes more than one path up that the duck can take using the platforms. Ensure platforms do not overlap. Essentially, we need more platforms so that there are times when the player has multilple options on how to proceed. This will set us up for other features like having broken or instantly collapsing platforms, enemies on platforms, other obstacles that would make one path preferable over another.
-- [ ] collapsing platforms that are visually distinct from other platforms and break apart after the player stands on them for more than 2 seconds. When the platform breaks, it no longer supports the player and the player falls. When the platform breaks, the player can no longer jump from the platform. The platform should indicate that it is breaking at 1 second and then break at the next second (breaks in 2 seconds).
+- [x] collapsing platforms that are visually distinct from other platforms and break apart after the player stands on them for more than 2 seconds. When the platform breaks, it no longer supports the player and the player falls. When the platform breaks, the player can no longer jump from the platform. The platform should indicate that it is breaking at 1 second and then break at the next second (breaks in 2 seconds).
 - [ ] Varying and improved platform appearance.
 - [x] no ending (repeat space background)
 - [ ] Create a MuliplayerIdeas.md in the docs folder to weight pros and cons of multiple options for implementing multiplayer functionality (racing) for this game. Should include considerations such as hosting options, backend support in python (ideally)... maybe hosting the backend separately so that the front end can remain on github pages.
-- [ ] quacking makes all platforms that are on the screen that are weak platforms (platforms that will break) self identify by cracking slightly
+- [x] quacking makes all platforms that are on the screen that are weak platforms (platforms that will break) self identify by cracking slightly
 
 ## Tech Debt
 
