@@ -1,4 +1,4 @@
-# Contributing to Tie and Jon Pygame
+# Contributing to Duck Jump
 
 Welcome! We use Gemini to help automate our development workflow.
 
